@@ -1,0 +1,454 @@
+ <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>Canvas API</title>
+        <META http-equiv="Content-Type" content="text/html; charset=UTF-8">        
+        <script>
+
+			(function()
+			{
+			    var loc = window.location.protocol + '//' + window.location.hostname + window.location.pathname;
+                loc = loc.split('\\');
+                loc = loc.join('/');					    
+			    loc = loc.split('/');
+			    loc.pop();
+			    loc = loc.join('/');
+			    loc += '/' + '../';
+			
+			    document.write("<base href='" + loc + "'></base>");
+			})();
+         
+        </script>
+
+        <link rel="stylesheet" type="text/css" href="jgdoc.css">
+        <link rel="stylesheet" type="text/css" href="theme.css">
+        	    <script type="text/javascript" src="navTree.js"></script>
+	    <script type="text/javascript" src="jgdoc.js"></script>
+	</head>
+    <body>
+        <div class="startup" id="startup">
+            <div class="banner" id="banner">
+                <h1 class="projectName">
+	               <a href=".">Canvas API</a>   
+                </h1>
+                <div class="bar">
+	                 version 0.2
+	            </div>
+	         </div>
+             <div class="content" id="docContent">
+                  <div class="block">
+                        <div id="searchBlock">
+			                <div class="search" >
+			                    <div class="searchLabel">Search:</div>
+			                    <div class="searchBlock" style="height:100%">
+					                <input id="jgsSearchString" type="text" size="60" class="jgdSearchString"/>
+					                <div id="jgsSearchPanel" class="jgsSearchPanel" style="display:none">
+						                <div  class="jgdSearchRect" >
+						                    <div id="jgsSearchResults">
+						                        Loading....
+						                    </div>
+						                </div>
+					                   <div id="jgsInfo" class="jgsInfo" >No selection</div>
+                                    </div>
+                                 </div>
+			                </div>
+		                </div>
+		                <div id="docScroll" class="docScroll">
+		                    <div>
+			                    <hr/>
+						        <div>
+						        						        		<H2>
+        <span class="objType">Namespace</span> Drawing
+    </H2>
+    
+
+    <hr/>
+    <!-- description -->
+    <div>
+       <code>
+            <span class="modifiers"></span>
+            <span class="objType">namespace</span> 
+            <b>Drawing</b>
+       </code>
+    </div>
+                                            <hr/> 
+    <p />
+    
+            	
+                                <div class="summaryTable object">
+            <div class="summaryTableHeader">
+                <span class="objType"> Object</span> Summary
+            </div>
+                    <div class="summaryItem">
+                                        <div class="summaryItemDef">
+        <span class="elementName">
+            <a href="logical/Drawing/animation.html">Drawing.animation</a>
+        </span>
+    </div>
+    <div class="summaryItemDesc">
+        
+ Animation related functions and properties.    </div>
+                            </div>
+                </div>
+        <p/>
+            
+                    
+    
+                <div class="summaryTable property">
+            <div class="summaryTableHeader">
+                <span class="objType">Property</span> Summary
+            </div>
+                    <div class="summaryItem">
+                                                <div class="summaryItemDef">
+        <span class="modifiers">read</span>
+        <span class="type">String</span>
+        <a href="logical/Drawing.html#___height"><span class="elementName">height</span></a>
+    </div> 
+    <div class="summaryItemDesc">
+        
+ The background colour of the drawing.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                <div class="summaryItemDef">
+        <span class="modifiers">read</span>
+        <span class="type">String</span>
+        <a href="logical/Drawing.html#___name"><span class="elementName">name</span></a>
+    </div> 
+    <div class="summaryItemDesc">
+        
+ The instance name of this drawing.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                <div class="summaryItemDef">
+        <span class="modifiers">read</span>
+        <span class="type">Number</span>
+        <a href="logical/Drawing.html#___width"><span class="elementName">width</span></a>
+    </div> 
+    <div class="summaryItemDesc">
+        
+ The height in pixels of this drawing.    </div>  
+                            </div>
+                </div>
+        <p/>
+                
+            
+                <div class="summaryTable function">
+            <div class="summaryTableHeader">
+                <span class="objType">Function</span> Summary
+            </div>
+                    <div class="summaryItem">
+                                                                    <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type">void</span>
+                <a href="logical/Drawing.html#___add"><span class="elementName">add</span></a>
+                (<span class="type">String</span>
+ name, <span class="type">Object</span>
+ obj)
+            </div>          
+                <div class="summaryItemDesc">
+        
+ Adds a Palette object to the Drawing.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                           <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type">void</span>
+                <a href="logical/Drawing.html#___draw"><span class="elementName">draw</span></a>()
+            </div>
+        <div class="summaryItemDesc">
+        
+ Paints the Drawing.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                           <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type">void</span>
+                <a href="logical/Drawing.html#___remove"><span class="elementName">remove</span></a>()
+            </div>
+        <div class="summaryItemDesc">
+        
+ Removes a Palette object from the Drawing.    </div>  
+                            </div>
+                </div>
+        <p/>
+                
+                    <!-- ============== Details coming here =================== -->
+    	    	            <div class="details property">
+            <h2 class="sectionHeader">Property Details</h2>
+                                                            
+            <h3>
+        <a name="___height">
+            <span class="objType">property</span> <span class="modifiers">read</span>
+            <span class="type">String</span>
+            <span class="objName">height</span>         
+        </a>
+    </h3>
+    <div class="comment">
+        
+ The background colour of the drawing. Either a CSS colour name or a hex value.
+     </div>    
+                <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr />  
+                                                                            
+            <h3>
+        <a name="___name">
+            <span class="objType">property</span> <span class="modifiers">read</span>
+            <span class="type">String</span>
+            <span class="objName">name</span>         
+        </a>
+    </h3>
+    <div class="comment">
+        
+ The instance name of this drawing. This is also the ID of the HTML canvas element
+     </div>    
+                <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr />  
+                                                                            
+            <h3>
+        <a name="___width">
+            <span class="objType">property</span> <span class="modifiers">read</span>
+            <span class="type">Number</span>
+            <span class="objName">width</span>         
+        </a>
+    </h3>
+    <div class="comment">
+        
+ The height in pixels of this drawing.
+     </div>    
+                <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                <div class="seealso">
+            <span class="descSection">See also:</span>
+                            <div class="paddedDetails"><a href="logical/Drawing.html#___width">width</a></div>
+                    </div>      
+                        <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr />  
+                                    </div>
+    	    	            <div class="details function">
+            <h2 class="sectionHeader">Function Details</h2>
+                                                                    <h3>
+        <a name="___add">
+            <span class="objType">function</span>
+            <span class="objName">add</span>            
+        </a> 
+    </h3>
+                        <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type">void</span>
+                    add(<span class="type">String</span>
+ name, <span class="type">Object</span>
+ obj)
+                </code> 
+            </div>          
+                <div class="comment">
+        
+ Adds a Palette object to the Drawing.
+     </div>
+        	<div class="parameters">
+        <span class="descSection">Parameters:</span><br/>
+                            <div>
+                    <div class="paramset"></div>
+                    <div>
+                                                <div class="param paddedDetails">
+        <code>
+            name        </code>
+         An instance name for the object            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            obj        </code>
+         The object to be added            </div>   
+                                        </div>
+                </div>
+                    </div>
+            	<div class="returns">
+	        <span class="descSection">Returns:</span><br/>
+	        <div class="paddedDetails">
+	            	             Nothing
+ 	            	        </div>
+        </div>      
+                        <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                <div class="seealso">
+            <span class="descSection">See also:</span>
+                            <div class="paddedDetails"><a href="logical/Drawing.html#___remove">Drawing.remove</a></div>
+                    </div>      
+                        <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___draw">
+            <span class="objType">function</span>
+            <span class="objName">draw</span>            
+        </a> 
+    </h3>
+                <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type">void</span>
+                    draw()
+                </code>
+            </div>    
+        <div class="comment">
+        
+ Paints the Drawing.
+     </div>
+            	<div class="returns">
+	        <span class="descSection">Returns:</span><br/>
+	        <div class="paddedDetails">
+	            	             Nothing
+ 	            	        </div>
+        </div>      
+                        <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                <div class="seealso">
+            <span class="descSection">See also:</span>
+                            <div class="paddedDetails"><a href="logical/Drawing/animation.html#___start">Drawing.animation.start</a></div>
+                    </div>      
+                        <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___remove">
+            <span class="objType">function</span>
+            <span class="objName">remove</span>            
+        </a> 
+    </h3>
+                <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type">void</span>
+                    remove()
+                </code>
+            </div>    
+        <div class="comment">
+        
+ Removes a Palette object from the Drawing.
+     </div>
+            	<div class="returns">
+	        <span class="descSection">Returns:</span><br/>
+	        <div class="paddedDetails">
+	            	             Nothing
+ 	            	        </div>
+        </div>      
+                        <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                <div class="seealso">
+            <span class="descSection">See also:</span>
+                            <div class="paddedDetails"><a href="logical/Drawing.html#___add">Drawing.add</a></div>
+                    </div>      
+                        <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+	 </div>
+                    </div>      
+                    <hr/>       
+                                    </div>
+    	    	                                    						        </div>
+        		          </div>			                    
+		                </div>
+        	       </div>
+             </div>
+             <div class="navigation" id="navigation">
+    <ul class="navContent">
+        <li>
+            <div class="navTree">
+                <h2 onclick="jgdoc.NavPanel.clicked(event)">
+                    <a href="javascript:jgdoc.NavPanel.dummy()">Navigation</a>
+                </h2>
+                <ul class="navContent2">
+                    <li>
+                        <div>
+                            <a class="openAll" href="javascript:jgdoc.NavTree.onOpenAll()">Open All</a>
+                            <a class="closeAll" href="javascript:jgdoc.NavTree.onCloseAll()">Close All</a>
+                        </div>
+                        <div>
+                            <ul id = "content" class="contents">
+                                Loading...
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    </ul>
+    <ul class="navContent closed">
+        <li>
+            <div class="fileTree">
+                <h2 onclick="jgdoc.NavPanel.clicked(event)">
+                    <a href="javascript:jgdoc.NavPanel.dummy()">Files</a>
+                </h2>
+                <ul class="navContent2">
+                    <li>
+                                                                                <div>
+                                <a href="physical/file-canvas_api.js.html">canvas_api.js</a>
+                            </div>                              
+                                                                        </li>
+                </ul>
+            </div>
+        </li>       
+    </ul>
+    <ul class="navContent closed">
+        <li>
+            <div class="moduleTree">
+                <h2 onclick="jgdoc.NavPanel.clicked(event)">
+                    <a href="javascript:jgdoc.NavPanel.dummy()">Modules</a>
+                </h2>
+                <ul class="navContent2">
+                    <li>
+                                            </li>
+                </ul>
+            </div>
+        </li>       
+    </ul>
+</div>  
+    
+		</div>	
+	</body>
+    <script type="text/javascript">
+        jgdoc.Searcher.start();
+        jgdoc.NavTree.initialize("Drawing");
+    </script>			
+	<script type="text/javascript" src="jsindex.js">
+    </script>
+</html>

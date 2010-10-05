@@ -4,31 +4,30 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Untitled Document</title>
 
-<script language="javascript" src="canvas_api.js"></script>
+<script language="javascript" src="src/canvas_api.js"></script>
 
 </head>
 <body>
 
 <script language="javascript">
 
-var my_drawing = new Drawing("my_canvas", 300, 300, "orange");
+var my_drawing = new Canvas.Drawing("my_canvas", 300, 300, "orange");
 
+/*
 var my_line = new Palette.Line();
 my_line.x1 = 0;
 my_line.y1 = 0;
 my_line.x2 = 100;
 my_line.y2 = 100;
+my_line.stroke.width = 10;
 
-var my_grad = new Palette.Gradient();
+var my_grad = new Palette.Gradient(0, 0, 150, 50);
 my_grad.addStop(0, "pink");
 my_grad.addStop(1, "blue");
 
-var my_rect = new Palette.Rectangle();
-my_rect.x = 50;
-my_rect.y = 50;
-my_rect.width = 200;
-my_rect.height = 100;
-my_rect.fill = my_grad;
+var my_rect = new Palette.Rectangle(50, 50, 200, 100);
+my_rect.fill = "green";
+my_rect.stroke.style = "transparent";
 
 var my_oval = new Palette.Circle();
 my_oval.x = 50;
@@ -36,10 +35,17 @@ my_oval.y = 50;
 my_oval.radius = 20;
 my_oval.stroke.style = "red";
 my_oval.fill = my_grad;
+my_oval.end = 180;
+*/
 
-my_drawing.add("line1", my_line);
-my_drawing.add("rect1", my_rect);
-my_drawing.add("oval1", my_oval);
+
+var my_arc = new Canvas.Palette.Circle(200, 200, 100);
+
+// var my_bez = new Palette.Bezier();
+// my_drawing.add("line1", my_line);
+// my_drawing.add("rect1", my_rect);
+// my_drawing.add("oval1", my_oval);
+my_drawing.add("bez1", my_arc);
 my_drawing.draw();
 
 var tick = 0;
@@ -48,7 +54,7 @@ var callback = function(){
 	my_line.x1 = 0 + (20*(tick%5));
 	my_drawing.draw();
 }
-my_drawing.animation.start(callback);
+// my_drawing.animation.start(callback);
 
 </script>
 
