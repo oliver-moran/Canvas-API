@@ -180,6 +180,7 @@ Canvas.Drawing = function(_name, _width, _height, _color){
 	this.add = function(name, obj){
 		this.scene[name] = obj;
 		this.scene[name].context = this.context;
+		this.scene[name].name = name;
 	}
 	/**
 	 * Removes a Palette object from the Drawing.
@@ -225,54 +226,126 @@ Canvas.Palette = new Object();
  * @author Oliver Moran
  * @since 0.2
  */
-Canvas.Palette.defaults = new Object();
-/**
- * The default stroke style Pallet objects.
- * @object {static} Palette.defaults.stroke
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.stroke = new Object();
-/**
- * The default stroke colour to be used for new Pallet objects. A CSS colour name, a hex value or a gradient.
- * @property {read write String} Palette.defaults.stroke.color
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.stroke.color = "MidnightBlue";
-/**
- * The default stroke width in pixels to be used for new Pallet objects.
- * @property {read write Number} Palette.defaults.stroke.width
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.stroke.width = 3;
-/**
- * The default stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "squate".
- * @property {read write String} Palette.defaults.stroke.cap
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.stroke.cap = "butt";
-/**
- * The default fill colour to be used for new Pallet objects. Either a CSS colour name, a hex colour value or a gradient.
- * @property {read write String} Palette.defaults.fill
- * @seePalette.Gradient
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.fill = "LightGrey";
-/**
- * Whether to closed (true) or leave open (false) new Palette objects.
- * @property {read write Boolean} Palette.defaults.close
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.defaults.close = false;
+Canvas.Palette.Object = function(){
+	/**
+	 * The default stroke style Pallet objects.
+	 * @object {static} Palette.defaults.stroke
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.stroke = new Object();
+	/**
+	 * The default stroke colour to be used for new Pallet objects. A CSS colour name, a hex value or a gradient.
+	 * @property {read write String} Palette.defaults.stroke.color
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.stroke.color = "MidnightBlue";
+	/**
+	 * The default stroke width in pixels to be used for new Pallet objects.
+	 * @property {read write Number} Palette.defaults.stroke.width
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.stroke.width = 3;
+	/**
+	 * The default stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "squate".
+	 * @property {read write String} Palette.defaults.stroke.cap
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.stroke.cap = "butt";
+	/**
+	 * The default fill colour to be used for new Pallet objects. Either a CSS colour name, a hex colour value or a gradient.
+	 * @property {read write String} Palette.defaults.fill
+	 * @seePalette.Gradient
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.fill = "LightGrey";
+	/**
+	 * Whether to closed (true) or leave open (false) new Palette objects.
+	 * @property {read write Boolean} Palette.defaults.close
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.close = false;
+	/**
+	 * The rotation of the Palette object in degrees around its origin.
+	 * @property {read write Number} Palette.defaults.rotation
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.rotation = 0;
+	/**
+	 * The location of the Palette object's orgin relative to the objects natural origin.
+	 * @object {static} Palette.defaults.origin
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.origin = new Object();
+	/**
+	 * The x coordinate of the Palette object's orgin relative to the objects natural origin.
+	 * @property {read write Number} Palette.defaults.origin.x
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.origin.x = 0;
+	/**
+	 * The y coordinate of the Palette object's orgin relative to the objects natural origin.
+	 * @property {read write Number} Palette.defaults.origin.y
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.origin.y = 0;
+	/**
+	 * The shadow to be applied to the Palette object.
+	 * @object {static} Palette.defaults.shadow
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.shadow = new Object();
+	/**
+	 * The x offset of the Palette object's shadow.
+	 * @property {read write Number} Palette.defaults.shadow.x
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	/**
+	 * The x offset of the Palette object's shadow.
+	 * @property {read write Number} Palette.defaults.shadow.x
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.shadow.color = "transparent";
+	/**
+	 * The x offset of the Palette object's shadow.
+	 * @property {read write Number} Palette.defaults.shadow.x
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.shadow.x = 5;
+	/**
+	 * The y offset of the Palette object's shadow.
+	 * @property {read write Number} Palette.defaults.shadow.y
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.shadow.y = 5;
+	/**
+	 * The blur radius of the Palette object's shadow.
+	 * @property {read write Number} Palette.defaults.shadow.blur
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.shadow.blur = 10;
+};
 
 Canvas.Palette.common = new Object();
 Canvas.Palette.common.setDefaults = function(_that){
-	for (var _default in Canvas.Palette.defaults) _that[_default] = Canvas.Palette.defaults[_default];
+	var defs = new Canvas.Palette.Object();
+	for (var _default in defs) _that[_default] = defs[_default];
+	// _that.stroke = new Object();
 
 	if (_that instanceof Canvas.Palette.Circle){
 		_that.start = 0;
@@ -293,6 +366,11 @@ Canvas.Palette.common.setStyle = function(_that){
 	_that.context.fillStyle = _fill;
 
 	_that.context.lineCap = _that.stroke.cap;
+	
+	_that.context.shadowColor = _that.shadow.color;
+	_that.context.shadowOffsetX = _that.shadow.x;
+	_that.context.shadowOffsetY = _that.shadow.y;  
+	_that.context.shadowBlur = _that.shadow.blur;
 }
 
 
@@ -319,10 +397,16 @@ Canvas.Palette.Line = function (_x1, _y1, _x2, _y2){
 Canvas.Palette.Line.prototype.draw = function(){
 	Canvas.Palette.common.setStyle(this);
 
+	this.context.translate(this.x1+this.origin.x, this.y1+this.origin.y)
+	this.context.rotate(this.rotation * Math.PI/180)
+	
 	this.context.beginPath();
-	this.context.moveTo(this.x1, this.y1);
-	this.context.lineTo(this.x2, this.y2);
+	this.context.moveTo(-this.origin.x, -this.origin.y);
+	this.context.lineTo((this.x2-this.x1)-this.origin.x, (this.y2-this.y1)-this.origin.y);
 	this.context.stroke();
+	
+	this.context.rotate(this.rotation * Math.PI/180 * -1)
+	this.context.translate(-(this.x1+this.origin.x), -(this.y1+this.origin.y))
 }
 
 /**
@@ -348,8 +432,20 @@ Canvas.Palette.Rectangle = function(_x, _y, _width, _height){
 Canvas.Palette.Rectangle.prototype.draw = function(){
 	Canvas.Palette.common.setStyle(this);
 
-	this.context.fillRect(this.x, this.y, this.width, this.height);
-	this.context.strokeRect(this.x, this.y, this.width, this.height);
+	var _w2 = this.width/2;
+	var _h2 = this.height/2;
+	var _o_x = this.x + _w2 + this.origin.x;
+	var _o_y = this.y + _h2 + this.origin.y;
+
+	this.context.translate(_o_x, _o_y)
+	this.context.rotate(this.rotation * Math.PI/180)
+
+	this.context.fillRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
+	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+	this.context.strokeRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
+
+	this.context.rotate(this.rotation * Math.PI/180 * -1)
+	this.context.translate(-_o_x, -_o_y)
 }
 
 /**
@@ -372,12 +468,19 @@ Canvas.Palette.Circle = function(_x, _y, _radius){
 }
 Canvas.Palette.Circle.prototype.draw = function(){
 	Canvas.Palette.common.setStyle(this);
-	
+
+	this.context.translate(this.x+this.origin.x, this.y+this.origin.y)
+	this.context.rotate(this.rotation * Math.PI/180)
+
 	this.context.beginPath();
-	this.context.arc(this.x, this.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
+	this.context.arc(-this.origin.x, -this.origin.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
 	if (this.close == true) this.context.closePath();
 	this.context.fill();
+	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 	this.context.stroke();
+	
+	this.context.rotate(this.rotation * Math.PI/180 * -1)
+	this.context.translate(-(this.x+this.origin.x), -(this.y+this.origin.y))
 }
 
 /**
@@ -409,14 +512,24 @@ Canvas.Palette.Arc = function(_x1, _y1, _x2, _y2, _x3, _y3, _radius){
 Canvas.Palette.Arc.prototype.draw = function(){
 	Canvas.Palette.common.setStyle(this);
 	
+	var o_x = (this.x1 + this.x3)/2 + this.origin.x;
+	var o_y = (this.y1 + this.y3)/2 + this.origin.y;
+	
+	this.context.translate(o_x, o_y);
+	this.context.rotate(this.rotation * Math.PI/180);
+
 	this.context.beginPath();
-   	this.context.moveTo(this.x1, this.y1);   // Same starting point as above.
-    this.context.arcTo(this.x2, this.y2, this.x3, this.y3, this.radius); // Create an arc.
-	this.context.lineTo(this.x3, this.y3);
+   	this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
+    this.context.arcTo(this.x2-o_x, this.y2-o_y, this.x3-o_x, this.y3-o_y, this.radius); // Create an arc.
+	this.context.lineTo(this.x3-o_x, this.y3-o_y);
 	
 	if (this.close == true) this.context.closePath();
 	this.context.fill();
+	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 	this.context.stroke();
+	
+	this.context.rotate(this.rotation * Math.PI/180 * -1);
+	this.context.translate(-o_x, -o_y);
 }
 
 /**
@@ -450,12 +563,22 @@ Canvas.Palette.Bezier = function(_x1, _y1, _x2, _y2, _c_x1, _c_y1, _c_x2, _c_y2)
 Canvas.Palette.Bezier.prototype.draw = function(){
 	Canvas.Palette.common.setStyle(this);
 	
+	var o_x = (this.x1 + this.x2)/2 + this.origin.x;
+	var o_y = (this.y1 + this.y2)/2 + this.origin.y;
+	
+	this.context.translate(o_x, o_y);
+	this.context.rotate(this.rotation * Math.PI/180);
+	
 	this.context.beginPath();
-   	this.context.moveTo(this.x1, this.y1);   // Same starting point as above.
-    this.context.bezierCurveTo(this.c_x1, this.c_y1, this.c_x2, this.c_y2, this.x2, this.y2); // Create an arc.
+   	this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
+    this.context.bezierCurveTo(this.c_x1-o_x, this.c_y1-o_y, this.c_x2-o_x, this.c_y2-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
 	if (this.close == true) this.context.closePath();
 	this.context.fill();
+	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 	this.context.stroke();
+	
+	this.context.rotate(this.rotation * Math.PI/180 * -1);
+	this.context.translate(-o_x, -o_y);	
 }
 
 /**
@@ -485,11 +608,12 @@ Canvas.Palette.Gradient = function (_x1, _y1, _x2, _y2){
 	}
 }
 Canvas.Palette.Gradient.prototype.draw = function(){
-	var _x1 = this._parent.x + this.x1;
-	var _y1 = this._parent.y + this.y1;
-	var _x2 = this._parent.x + this.x2;
-	var _y2 = this._parent.y + this.y2;
+	var _x1 = this.x1 - this._parent.origin.x;
+	var _y1 = this.y1 - this._parent.origin.y;
+	var _x2 = this.x2 - this._parent.origin.x;
+	var _y2 = this.y2 - this._parent.origin.y;
 	
+	// alert(this._parent.constructor);
 	var _gradient = this._parent.context.createLinearGradient(_x1, _y1, _x2, _y2);
 	for (var stop in this.stops)
 		_gradient.addColorStop(this.stops[stop].offset, this.stops[stop].color);

@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>Untitled Document</title>
 
-<script language="javascript" src="canvas_api.js"></script>
+<script language="javascript" src="src/canvas_api.js"></script>
 
 </head>
 <body>
@@ -13,18 +13,22 @@
 
 var my_drawing = new Canvas.Drawing("my_canvas", 300, 300, "orange");
 
-/*
-var my_line = new Palette.Line();
-my_line.x1 = 0;
-my_line.y1 = 0;
+var my_line = new Canvas.Palette.Line();
+my_line.x1 = 100;
+my_line.y1 = 100;
 my_line.x2 = 100;
-my_line.y2 = 100;
+my_line.y2 = 0;
+my_line.origin.x = 0;
+my_line.origin.y = -50;
 my_line.stroke.width = 10;
+my_line.stroke.color = "green";
+my_drawing.add("my_line", my_line);
 
-var my_grad = new Palette.Gradient(0, 0, 150, 50);
-my_grad.addStop(0, "pink");
+var my_grad = new Canvas.Palette.Gradient(-50, -25, 100, 50);
+my_grad.addStop(0, "green");
 my_grad.addStop(1, "blue");
 
+/*
 var my_rect = new Palette.Rectangle(50, 50, 200, 100);
 my_rect.fill = "green";
 my_rect.stroke.style = "transparent";
@@ -39,22 +43,41 @@ my_oval.end = 180;
 */
 
 
-var my_arc = new Canvas.Palette.Circle(200, 200, 100);
+var my_rect = new Canvas.Palette.Rectangle(200, 200, 100, 50);
+my_rect.stroke.width = 2;
+my_rect.stroke.color = "black";
+my_rect.origin.x = -50;
+my_rect.origin.y = -25;
+my_rect.fill = my_grad;
+my_rect.shadow.color = "magenta";
+my_rect.shadow.blur = 10;
+
+my_drawing.add("my_rect", my_rect);
+
+
+var my_arc = new Canvas.Palette.Bezier(50, 150, 150, 150, 50, 0, 150, 50)
+my_arc.stroke.width = 4;
+my_arc.stroke.color = "pink";
+my_arc.origin.x = 0;
+my_arc.origin.y = 0;
+my_arc.fill = "transparent";
+
+my_drawing.add("my_circle", my_arc);
+
 
 // var my_bez = new Palette.Bezier();
 // my_drawing.add("line1", my_line);
 // my_drawing.add("rect1", my_rect);
 // my_drawing.add("oval1", my_oval);
-my_drawing.add("bez1", my_arc);
 my_drawing.draw();
 
-var tick = 0;
 var callback = function(){
-	tick++;
-	my_line.x1 = 0 + (20*(tick%5));
+	my_line.rotation++;
+	my_rect.rotation -= 5;
+	my_arc.rotation += 5;
 	my_drawing.draw();
 }
-// my_drawing.animation.start(callback);
+my_drawing.animation.start(callback);
 
 </script>
 
