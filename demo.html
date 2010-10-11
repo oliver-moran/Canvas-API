@@ -13,15 +13,13 @@
 
 var my_drawing = new Canvas.Drawing("my_canvas", 300, 300, "orange");
 
-var my_line = new Canvas.Palette.Line();
-my_line.x1 = 100;
-my_line.y1 = 100;
-my_line.x2 = 100;
-my_line.y2 = 0;
+var my_line = new Canvas.Palette.Line(100, 100, 100, 0);
 my_line.origin.x = 0;
 my_line.origin.y = -50;
 my_line.stroke.width = 10;
 my_line.stroke.color = "green";
+my_line.alpha = 50;
+
 my_drawing.add("my_line", my_line);
 
 var my_grad = new Canvas.Palette.Gradient(-50, -25, 100, 50);
@@ -49,21 +47,23 @@ my_rect.stroke.color = "black";
 my_rect.origin.x = -50;
 my_rect.origin.y = -25;
 my_rect.fill = my_grad;
-my_rect.shadow.color = "magenta";
-my_rect.shadow.blur = 10;
 
 my_drawing.add("my_rect", my_rect);
 
 
-var my_arc = new Canvas.Palette.Bezier(50, 150, 150, 150, 50, 0, 150, 50)
-my_arc.stroke.width = 4;
+var my_arc = new Canvas.Palette.Quadratic(50, 150, 150, 150, 200, 10);
+my_arc.stroke.cap = "butt";
+my_arc.stroke.width = 10;
 my_arc.stroke.color = "pink";
 my_arc.origin.x = 0;
 my_arc.origin.y = 0;
-my_arc.fill = "transparent";
 
 my_drawing.add("my_circle", my_arc);
 
+var my_img = new Canvas.Palette.Image(20, 20, "test.svg");
+my_img.origin.x = +50;
+my_img.origin.y = +50;
+my_drawing.add("my_img", my_img);
 
 // var my_bez = new Palette.Bezier();
 // my_drawing.add("line1", my_line);
@@ -75,6 +75,8 @@ var callback = function(){
 	my_line.rotation++;
 	my_rect.rotation -= 5;
 	my_arc.rotation += 5;
+	my_img.rotation += 2;
+	
 	my_drawing.draw();
 }
 my_drawing.animation.start(callback);

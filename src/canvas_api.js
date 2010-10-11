@@ -204,7 +204,10 @@ Canvas.Drawing = function(_name, _width, _height, _color){
 	this.draw = function(){
 		this.context.clearRect(0,0,this.width,this.height);
 		for (var object in this.scene){
-			this.scene[object].draw();
+			try {
+				this.scene[object].draw();
+			} catch (err) {
+			}
 		}
 	}
 }
@@ -249,7 +252,7 @@ Canvas.Palette.Object = function(){
 	 */
 	this.stroke.width = 3;
 	/**
-	 * The default stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "squate".
+	 * The default stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "square".
 	 * @property {read write String} Palette.defaults.stroke.cap
 	 * @author Oliver Moran
 	 * @since 0.2
@@ -339,6 +342,13 @@ Canvas.Palette.Object = function(){
 	 * @since 0.2
 	 */
 	this.shadow.blur = 10;
+	/**
+	 * The transparancy (alpha) of the Palette object ranging from 0 (fully transparent) to 100 (fully opaque).
+	 * @property {read write Number} Palette.defaults.alpha
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.alpha = 100;
 };
 
 Canvas.Palette.common = new Object();
@@ -354,6 +364,8 @@ Canvas.Palette.common.setDefaults = function(_that){
 	}
 }
 Canvas.Palette.common.setStyle = function(_that){
+	Canvas.Palette.common.limitStyles(_that);
+	
 	_that.context.strokeStyle = _that.stroke.color;
 	_that.context.lineWidth = _that.stroke.width;
 
@@ -371,8 +383,14 @@ Canvas.Palette.common.setStyle = function(_that){
 	_that.context.shadowOffsetX = _that.shadow.x;
 	_that.context.shadowOffsetY = _that.shadow.y;  
 	_that.context.shadowBlur = _that.shadow.blur;
+	
+	_that.context.globalAlpha = _that.alpha/100;
 }
-
+Canvas.Palette.common.limitStyles = function(_that){
+	if (_that.alpha < 0 || _that.alpha > 100 || isNaN(_that.alpha) || Math.round(_that.alpha) == Infinity) {
+		_that.alpha = Canvas.Palette.Object.alpha;
+	}
+}
 
 /**
  * Creates a Line.
@@ -392,21 +410,22 @@ Canvas.Palette.Line = function (_x1, _y1, _x2, _y2){
 		this.y1 = _y1;
 		this.x2 = _x2;
 		this.y2 = _y2;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+		
+			this.context.translate(this.x1+this.origin.x, this.y1+this.origin.y)
+			this.context.rotate(this.rotation * Math.PI/180)
+			
+			this.context.beginPath();
+			this.context.moveTo(-this.origin.x, -this.origin.y);
+			this.context.lineTo((this.x2-this.x1)-this.origin.x, (this.y2-this.y1)-this.origin.y);
+			this.context.stroke();
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1);
+			this.context.translate(-(this.x1+this.origin.x), -(this.y1+this.origin.y));
+		}
 	}
-}
-Canvas.Palette.Line.prototype.draw = function(){
-	Canvas.Palette.common.setStyle(this);
-
-	this.context.translate(this.x1+this.origin.x, this.y1+this.origin.y)
-	this.context.rotate(this.rotation * Math.PI/180)
-	
-	this.context.beginPath();
-	this.context.moveTo(-this.origin.x, -this.origin.y);
-	this.context.lineTo((this.x2-this.x1)-this.origin.x, (this.y2-this.y1)-this.origin.y);
-	this.context.stroke();
-	
-	this.context.rotate(this.rotation * Math.PI/180 * -1)
-	this.context.translate(-(this.x1+this.origin.x), -(this.y1+this.origin.y))
 }
 
 /**
@@ -427,25 +446,26 @@ Canvas.Palette.Rectangle = function(_x, _y, _width, _height){
 		this.y = _y;
 		this.width = _width;
 		this.height = _height;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+		
+			var _w2 = this.width/2;
+			var _h2 = this.height/2;
+			var _o_x = this.x + _w2 + this.origin.x;
+			var _o_y = this.y + _h2 + this.origin.y;
+		
+			this.context.translate(_o_x, _o_y)
+			this.context.rotate(this.rotation * Math.PI/180)
+		
+			this.context.fillRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
+			if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			this.context.strokeRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
+		
+			this.context.rotate(this.rotation * Math.PI/180 * -1)
+			this.context.translate(-_o_x, -_o_y)
+		}
 	}
-}
-Canvas.Palette.Rectangle.prototype.draw = function(){
-	Canvas.Palette.common.setStyle(this);
-
-	var _w2 = this.width/2;
-	var _h2 = this.height/2;
-	var _o_x = this.x + _w2 + this.origin.x;
-	var _o_y = this.y + _h2 + this.origin.y;
-
-	this.context.translate(_o_x, _o_y)
-	this.context.rotate(this.rotation * Math.PI/180)
-
-	this.context.fillRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
-	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-	this.context.strokeRect(-(_w2+this.origin.x), -(_h2+this.origin.y), this.width, this.height);
-
-	this.context.rotate(this.rotation * Math.PI/180 * -1)
-	this.context.translate(-_o_x, -_o_y)
 }
 
 /**
@@ -464,23 +484,24 @@ Canvas.Palette.Circle = function(_x, _y, _radius){
 		this.x = _x;
 		this.y = _y;
 		this.radius = _radius;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+		
+			this.context.translate(this.x+this.origin.x, this.y+this.origin.y)
+			this.context.rotate(this.rotation * Math.PI/180)
+		
+			this.context.beginPath();
+			this.context.arc(-this.origin.x, -this.origin.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
+			if (this.close == true) this.context.closePath();
+			this.context.fill();
+			if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			this.context.stroke();
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1)
+			this.context.translate(-(this.x+this.origin.x), -(this.y+this.origin.y))
+		}
 	}
-}
-Canvas.Palette.Circle.prototype.draw = function(){
-	Canvas.Palette.common.setStyle(this);
-
-	this.context.translate(this.x+this.origin.x, this.y+this.origin.y)
-	this.context.rotate(this.rotation * Math.PI/180)
-
-	this.context.beginPath();
-	this.context.arc(-this.origin.x, -this.origin.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
-	if (this.close == true) this.context.closePath();
-	this.context.fill();
-	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-	this.context.stroke();
-	
-	this.context.rotate(this.rotation * Math.PI/180 * -1)
-	this.context.translate(-(this.x+this.origin.x), -(this.y+this.origin.y))
 }
 
 /**
@@ -507,33 +528,34 @@ Canvas.Palette.Arc = function(_x1, _y1, _x2, _y2, _x3, _y3, _radius){
 		this.x3 = _x3;
 		this.y3 = _y3;
 		this.radius = _radius;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+			
+			var o_x = (this.x1 + this.x3)/2 + this.origin.x;
+			var o_y = (this.y1 + this.y3)/2 + this.origin.y;
+			
+			this.context.translate(o_x, o_y);
+			this.context.rotate(this.rotation * Math.PI/180);
+		
+			this.context.beginPath();
+			this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
+			this.context.arcTo(this.x2-o_x, this.y2-o_y, this.x3-o_x, this.y3-o_y, this.radius); // Create an arc.
+			this.context.lineTo(this.x3-o_x, this.y3-o_y);
+			
+			if (this.close == true) this.context.closePath();
+			this.context.fill();
+			if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			this.context.stroke();
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1);
+			this.context.translate(-o_x, -o_y);
+		}
 	}
-}
-Canvas.Palette.Arc.prototype.draw = function(){
-	Canvas.Palette.common.setStyle(this);
-	
-	var o_x = (this.x1 + this.x3)/2 + this.origin.x;
-	var o_y = (this.y1 + this.y3)/2 + this.origin.y;
-	
-	this.context.translate(o_x, o_y);
-	this.context.rotate(this.rotation * Math.PI/180);
-
-	this.context.beginPath();
-   	this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
-    this.context.arcTo(this.x2-o_x, this.y2-o_y, this.x3-o_x, this.y3-o_y, this.radius); // Create an arc.
-	this.context.lineTo(this.x3-o_x, this.y3-o_y);
-	
-	if (this.close == true) this.context.closePath();
-	this.context.fill();
-	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-	this.context.stroke();
-	
-	this.context.rotate(this.rotation * Math.PI/180 * -1);
-	this.context.translate(-o_x, -o_y);
 }
 
 /**
- * Creates an Bézier curve.
+ * Creates an cubic Bézier curve.
  * @constructor {public} Palette.Bezier
  * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
  * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
@@ -549,7 +571,7 @@ Canvas.Palette.Arc.prototype.draw = function(){
 Canvas.Palette.Bezier = function(_x1, _y1, _x2, _y2, _c_x1, _c_y1, _c_x2, _c_y2){
 	Canvas.Palette.common.setDefaults(this);
 	
-	if ((_x1 && _y1 && _x2 && _y2) != undefined){
+	if ((_x1 && _y1 && _x2 && _y2 && _c_x1 && _c_y1 && _c_x2 && _c_y2) != undefined){
 		this.x1 = _x1;
 		this.y1 = _y1;
 		this.x2 = _x2;
@@ -558,27 +580,108 @@ Canvas.Palette.Bezier = function(_x1, _y1, _x2, _y2, _c_x1, _c_y1, _c_x2, _c_y2)
 		this.c_y1 = _c_y1;
 		this.c_x2 = _c_x2;
 		this.c_y2 = _c_y2;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+			
+			var o_x = (this.x1 + this.x2)/2 + this.origin.x;
+			var o_y = (this.y1 + this.y2)/2 + this.origin.y;
+			
+			this.context.translate(o_x, o_y);
+			this.context.rotate(this.rotation * Math.PI/180);
+			
+			this.context.beginPath();
+			this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
+			this.context.bezierCurveTo(this.c_x1-o_x, this.c_y1-o_y, this.c_x2-o_x, this.c_y2-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
+			if (this.close == true) this.context.closePath();
+			this.context.fill();
+			if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			this.context.stroke();
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1);
+			this.context.translate(-o_x, -o_y);	
+		}
 	}
 }
-Canvas.Palette.Bezier.prototype.draw = function(){
-	Canvas.Palette.common.setStyle(this);
+
+/**
+ * Creates an quadratic Bézier curve.
+ * @constructor {public} Palette.Quadratic
+ * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
+ * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
+ * @param {Number} x2 The x coordinate of the end point of the curve in pixels.
+ * @param {Number} y2 The y coordinate of the end point of the curve in pixels.
+ * @param {Number} c_x1 The x coordinate of the first control point of the curve in pixels.
+ * @param {Number} c_y1 The y coordinate of the first control point of the curve in pixels.
+ * @param {Number} c_x2 The x coordinate of the second control point of the curve in pixels.
+ * @param {Number} c_y2 The y coordinate of the second control point of the curve in pixels.
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.Quadratic = function(_x1, _y1, _x2, _y2, _c_x, _c_y){
+	Canvas.Palette.common.setDefaults(this);
 	
-	var o_x = (this.x1 + this.x2)/2 + this.origin.x;
-	var o_y = (this.y1 + this.y2)/2 + this.origin.y;
+	if ((_x1 && _y1 && _x2 && _y2 && _c_x && _c_y) != undefined){
+		this.x1 = _x1;
+		this.y1 = _y1;
+		this.x2 = _x2;
+		this.y2 = _y2;
+		this.c_x = _c_x;
+		this.c_y = _c_y;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+			
+			var o_x = (this.x1 + this.x2)/2 + this.origin.x;
+			var o_y = (this.y1 + this.y2)/2 + this.origin.y;
+			
+			this.context.translate(o_x, o_y);
+			this.context.rotate(this.rotation * Math.PI/180);
+			
+			this.context.beginPath();
+			this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
+			this.context.quadraticCurveTo(this.c_x-o_x, this.c_y-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
+			if (this.close == true) this.context.closePath();
+			this.context.fill();
+			if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			this.context.stroke();
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1);
+			this.context.translate(-o_x, -o_y);	
+		}
+	}
+}
+
+/**
+ * Creates an Image from a source file (.png, .gif, .svg, .jpg, etc.).
+ * @constructor {public} Palette.Image
+ * @param {Number} x The x coordinate of the top-left corder of the image in pixels.
+ * @param {Number} y The y coordinate of the top-left corder of the image in pixels.
+ * @param {String} src A URL to the source file for the image.
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.Image = function(_x, _y, _src){
+	Canvas.Palette.common.setDefaults(this);
 	
-	this.context.translate(o_x, o_y);
-	this.context.rotate(this.rotation * Math.PI/180);
-	
-	this.context.beginPath();
-   	this.context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
-    this.context.bezierCurveTo(this.c_x1-o_x, this.c_y1-o_y, this.c_x2-o_x, this.c_y2-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
-	if (this.close == true) this.context.closePath();
-	this.context.fill();
-	if (this.fill != "transparent") this.context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-	this.context.stroke();
-	
-	this.context.rotate(this.rotation * Math.PI/180 * -1);
-	this.context.translate(-o_x, -o_y);	
+	if ((_x && _y && _src) != undefined){
+		this.x = _x;
+		this.y = _y;
+		this.image = new Image();
+		this.image.src = _src;
+		
+		this.draw = function(){
+			Canvas.Palette.common.setStyle(this);
+			
+			this.context.translate(this.x+this.origin.x, this.y+this.origin.y);
+			this.context.rotate(this.rotation * Math.PI/180);
+			
+			this.context.drawImage(this.image, -this.origin.x, -this.origin.y)
+			
+			this.context.rotate(this.rotation * Math.PI/180 * -1);
+			this.context.translate(-(this.x+this.origin.x), -(this.y+this.origin.y));
+		}
+	}
 }
 
 /**
@@ -597,6 +700,20 @@ Canvas.Palette.Gradient = function (_x1, _y1, _x2, _y2){
 		this.y1 = _y1;
 		this.x2 = _x2;
 		this.y2 = _y2;
+		
+		this.draw = function(){
+			var _x1 = this.x1 - this._parent.origin.x;
+			var _y1 = this.y1 - this._parent.origin.y;
+			var _x2 = this.x2 - this._parent.origin.x;
+			var _y2 = this.y2 - this._parent.origin.y;
+			
+			// alert(this._parent.constructor);
+			var _gradient = this._parent.context.createLinearGradient(_x1, _y1, _x2, _y2);
+			for (var stop in this.stops)
+				_gradient.addColorStop(this.stops[stop].offset, this.stops[stop].color);
+			
+			return _gradient;
+		}
 	}
 	
 	this.stops = new Array();
@@ -606,17 +723,4 @@ Canvas.Palette.Gradient = function (_x1, _y1, _x2, _y2){
 		stop.color = _color;
 		this.stops.push(stop);
 	}
-}
-Canvas.Palette.Gradient.prototype.draw = function(){
-	var _x1 = this.x1 - this._parent.origin.x;
-	var _y1 = this.y1 - this._parent.origin.y;
-	var _x2 = this.x2 - this._parent.origin.x;
-	var _y2 = this.y2 - this._parent.origin.y;
-	
-	// alert(this._parent.constructor);
-	var _gradient = this._parent.context.createLinearGradient(_x1, _y1, _x2, _y2);
-	for (var stop in this.stops)
-		_gradient.addColorStop(this.stops[stop].offset, this.stops[stop].color);
-	
-	return _gradient;
 }
