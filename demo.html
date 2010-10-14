@@ -22,9 +22,11 @@ my_line.alpha = 50;
 
 my_drawing.add("my_line", my_line);
 
-var my_grad = new Canvas.Palette.Gradient(-50, -25, 100, 50);
-my_grad.addStop(0, "green");
-my_grad.addStop(1, "blue");
+// var my_grad = new Canvas.Palette.Gradient(-50, -25, 50, 25);
+// var my_grad = new Canvas.Palette.Radial(50);
+// my_grad.addStop(0, "green");
+// my_grad.addStop(1, "blue");
+var my_grad = new Canvas.Palette.Pattern("http://www.irishtimes.com/homepage/images/commercialfeatures/1224243151612.jpg?ts=1237547084");
 
 /*
 var my_rect = new Palette.Rectangle(50, 50, 200, 100);
@@ -57,10 +59,11 @@ my_arc.stroke.width = 10;
 my_arc.stroke.color = "pink";
 my_arc.origin.x = 0;
 my_arc.origin.y = 0;
+// my_arc.fill = my_grad;
 
 my_drawing.add("my_circle", my_arc);
 
-var my_img = new Canvas.Palette.Image(20, 20, "test.svg");
+var my_img = new Canvas.Palette.Image(20, 20, "http://www.irishtimes.com/homepage/images/commercialfeatures/1224243151612.jpg?ts=1237547084");
 my_img.origin.x = +50;
 my_img.origin.y = +50;
 my_drawing.add("my_img", my_img);
@@ -69,7 +72,8 @@ my_drawing.add("my_img", my_img);
 // my_drawing.add("line1", my_line);
 // my_drawing.add("rect1", my_rect);
 // my_drawing.add("oval1", my_oval);
-my_drawing.draw();
+
+// my_drawing.draw();
 
 var callback = function(){
 	my_line.rotation++;
@@ -83,5 +87,7 @@ my_drawing.animation.start(callback);
 
 </script>
 
+
+<input onclick="javascript:my_drawing.draw();" type="button" value="Update" />
 </body>
 </html>

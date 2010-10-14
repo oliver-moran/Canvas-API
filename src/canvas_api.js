@@ -200,19 +200,55 @@ Canvas.Drawing = function(_name, _width, _height, _color){
 	 * @see Drawing.animation.start
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
+	 */
 	this.draw = function(){
+		if (!Canvas.Library.ready()){
+			// if images are no loaded them set an timeout that continually checks that they have
+			var _self = this;
+			setTimeout(function(){
+					_self.draw();
+				}, 10);
+			return;
+		}
+
 		this.context.clearRect(0,0,this.width,this.height);
 		for (var object in this.scene){
-			try {
+			// try {
 				this.scene[object].draw();
-			} catch (err) {
-			}
+			// } catch (err) {
+			// }
 		}
 	}
 }
 
 
+
+
+/**
+ * The static Library class where images and other media are stored.
+ * @object {private static} Canvas.Library
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Library = new Object();
+Canvas.Library.images = new Array();
+Canvas.Library.imagesLoaded = 0;
+Canvas.Library.newImage = function(src){
+	var tmpImage = new Image();
+	// doesn't work on Opera or FF
+	tmpImage.onload = function(){
+		Canvas.Library.imagesLoaded++;
+	}
+	// tmpImage.onabort
+	// tmpImage.onerror
+	tmpImage.src = src;
+
+	Canvas.Library.images.push(tmpImage);
+	return Canvas.Library.images[Canvas.Library.images.length-1];
+}
+Canvas.Library.ready = function(){
+	return (Canvas.Library.images.length == Canvas.Library.imagesLoaded);
+}
 
 
 /**
@@ -370,7 +406,7 @@ Canvas.Palette.common.setStyle = function(_that){
 	_that.context.lineWidth = _that.stroke.width;
 
 	var _fill = _that.fill;
-	if (_fill instanceof Canvas.Palette.Gradient){
+	if (_fill instanceof Canvas.Palette.Gradient || _fill instanceof Canvas.Palette.Radial || _fill instanceof Canvas.Palette.Pattern){
 		_fill._parent = _that;
 		_fill = _fill.draw();
 		delete _fill._parent;
@@ -402,6 +438,7 @@ Canvas.Palette.common.limitStyles = function(_that){
  * @author Oliver Moran
  * @since 0.2
  */
+ 
 Canvas.Palette.Line = function (_x1, _y1, _x2, _y2){
 	Canvas.Palette.common.setDefaults(this);
 	
@@ -667,8 +704,7 @@ Canvas.Palette.Image = function(_x, _y, _src){
 	if ((_x && _y && _src) != undefined){
 		this.x = _x;
 		this.y = _y;
-		this.image = new Image();
-		this.image.src = _src;
+		this.image = Canvas.Library.newImage(_src);
 		
 		this.draw = function(){
 			Canvas.Palette.common.setStyle(this);
@@ -685,12 +721,12 @@ Canvas.Palette.Image = function(_x, _y, _src){
 }
 
 /**
- * Creates an Gradient for use in fills.
+ * Creates an linear gradient for use in fills.
  * @constructor {public} Palette.Gradient
- * @param {Number} x1 The x coordinate of the start point of the gradient in pixels relative to the Palette object being filled.
- * @param {Number} y1 The y coordinate of the start point of the gradient in pixels relative to the Palette object being filled.
- * @param {Number} x2 The x coordinate of the end point of the gradient in pixels relative to the Palette object being filled.
- * @param {Number} y2 The y coordinate of the end point of the gradient in pixels relative to the Palette object being filled.
+ * @param {Number} x1 The x coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
+ * @param {Number} y1 The y coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
+ * @param {Number} x2 The x coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
+ * @param {Number} y2 The y coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
  * @author Oliver Moran
  * @since 0.2
  */
@@ -707,7 +743,6 @@ Canvas.Palette.Gradient = function (_x1, _y1, _x2, _y2){
 			var _x2 = this.x2 - this._parent.origin.x;
 			var _y2 = this.y2 - this._parent.origin.y;
 			
-			// alert(this._parent.constructor);
 			var _gradient = this._parent.context.createLinearGradient(_x1, _y1, _x2, _y2);
 			for (var stop in this.stops)
 				_gradient.addColorStop(this.stops[stop].offset, this.stops[stop].color);
@@ -722,5 +757,80 @@ Canvas.Palette.Gradient = function (_x1, _y1, _x2, _y2){
 		stop.offset = _offset;
 		stop.color = _color;
 		this.stops.push(stop);
+	}
+}
+
+/**
+ * Creates an radial gradient for use in fills.
+ * @constructor {public} Palette.Radial
+ * @param {optional Number} x1 The x coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
+ * @param {optional Number} y1 The y coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
+ * @param {optional Number} radius1 The radius of the starting circle in pixels.
+ * @param {optional Number} x2 The x coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
+ * @param {optional Number} y2 The y coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
+ * @param {Number} radius2 The radius of the ending circle in pixels.
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.Radial = function (_x1, _y1, _radius1, _x2, _y2, _radius2){
+	if (_x1 != undefined && (_y1 && _radius1 && _x2 && _y2 && _radius2) == undefined){
+		_radius2 = _x1;
+		_x1 = 0;
+		_y1 = 0;
+		_x2 = 0;
+		_y2 = 0;
+		_radius1 = 0;
+	}
+	
+	if ((_x1 && _y1 && _radius1 && _x2 && _y2 && _radius2) != undefined){
+		this.x1 = _x1;
+		this.y1 = _y1;
+		this.radius1 = _radius1;
+		this.x2 = _x2;
+		this.y2 = _y2;
+		this.radius2 = _radius2;
+		
+		this.draw = function(){
+			var _x1 = this.x1 - this._parent.origin.x;
+			var _y1 = this.y1 - this._parent.origin.y;
+			var _x2 = this.x2 - this._parent.origin.x;
+			var _y2 = this.y2 - this._parent.origin.y;
+			
+			var _gradient = this._parent.context.createRadialGradient(_x1, _y1, this.radius1, _x2, _y2, this.radius2);
+			for (var stop in this.stops)
+				_gradient.addColorStop(this.stops[stop].offset, this.stops[stop].color);
+			
+			return _gradient;
+		}
+	}
+	
+	this.stops = new Array();
+	this.addStop = function(_offset, _color){
+		var stop = new Object();
+		stop.offset = _offset;
+		stop.color = _color;
+		this.stops.push(stop);
+	}
+}
+
+/**
+ * Creates an radial gradient for use in fills.
+ * @constructor {public} Palette.Pattern
+ * @param {String} src The URL of an image file.
+ * @param {optional String} repeat How the patter should repeat. Valid values are repeat, repeat-x, repeat-y and no-repeat. Defaults to repeat.
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.Pattern = function (_src, _repeat){
+	if (_repeat == undefined) _repeat = "repeat";
+
+	if ((_src && _repeat) != undefined){
+		this.image = Canvas.Library.newImage(_src);
+		this.repeat = _repeat;
+		
+		this.draw = function(){
+			var _gradient = this._parent.context.createPattern(this.image, this.repeat);
+			return _gradient;
+		}
 	}
 }
