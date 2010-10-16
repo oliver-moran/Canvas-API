@@ -134,7 +134,7 @@
             </div>          
                 <div class="summaryItemDesc">
         
- Creates an Bézier curve.    </div>  
+ Creates an cubic Bézier curve.    </div>  
                             </div>
                     <div class="summaryItem">
                                                                     <div class="summaryItemDef">
@@ -163,7 +163,21 @@
             </div>          
                 <div class="summaryItemDesc">
         
- Creates an Gradient for use in fills.    </div>  
+ Creates an linear gradient for use in fills.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                                    <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type"></span>
+                <a href="logical/Palette.html#___Image"><span class="elementName">Image</span></a>
+                (<span class="type">Number</span>
+ x, <span class="type">Number</span>
+ y, <span class="type">String</span>
+ src)
+            </div>          
+                <div class="summaryItemDesc">
+        
+ Creates an Image from a source file (.png, .gif, .svg, .jpg, etc.).    </div>  
                             </div>
                     <div class="summaryItem">
                                                                     <div class="summaryItemDef">
@@ -179,6 +193,55 @@
                 <div class="summaryItemDesc">
         
  Creates a Line.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                                    <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type"></span>
+                <a href="logical/Palette.html#___Pattern"><span class="elementName">Pattern</span></a>
+                (<span class="type">String</span>
+ src, [<span class="type">String</span>
+ repeat])
+            </div>          
+                <div class="summaryItemDesc">
+        
+ Creates an radial gradient for use in fills.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                                    <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type"></span>
+                <a href="logical/Palette.html#___Quadratic"><span class="elementName">Quadratic</span></a>
+                (<span class="type">Number</span>
+ x1, <span class="type">Number</span>
+ y1, <span class="type">Number</span>
+ x2, <span class="type">Number</span>
+ y2, <span class="type">Number</span>
+ c_x1, <span class="type">Number</span>
+ c_y1, <span class="type">Number</span>
+ c_x2, <span class="type">Number</span>
+ c_y2)
+            </div>          
+                <div class="summaryItemDesc">
+        
+ Creates an quadratic Bézier curve.    </div>  
+                            </div>
+                    <div class="summaryItem">
+                                                                    <div class="summaryItemDef">
+                <span class="modifiers">public</span>
+                <span class="type"></span>
+                <a href="logical/Palette.html#___Radial"><span class="elementName">Radial</span></a>
+                ([<span class="type">Number</span>
+ x1], [<span class="type">Number</span>
+ y1], [<span class="type">Number</span>
+ radius1], [<span class="type">Number</span>
+ x2], [<span class="type">Number</span>
+ y2], <span class="type">Number</span>
+ radius2)
+            </div>          
+                <div class="summaryItemDesc">
+        
+ Creates an radial gradient for use in fills.    </div>  
                             </div>
                     <div class="summaryItem">
                                                                     <div class="summaryItemDef">
@@ -296,7 +359,7 @@
             </div>          
                 <div class="comment">
         
- Creates an Bézier curve.
+ Creates an cubic Bézier curve.
      </div>
         	<div class="parameters">
         <span class="descSection">Parameters:</span><br/>
@@ -419,7 +482,7 @@
             </div>          
                 <div class="comment">
         
- Creates an Gradient for use in fills.
+ Creates an linear gradient for use in fills.
      </div>
         	<div class="parameters">
         <span class="descSection">Parameters:</span><br/>
@@ -429,19 +492,70 @@
                                                 <div class="param paddedDetails">
         <code>
             x1        </code>
-         The x coordinate of the start point of the gradient in pixels relative to the Palette object being filled.            </div>   
+         The x coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.            </div>   
                                                 <div class="param paddedDetails">
         <code>
             y1        </code>
-         The y coordinate of the start point of the gradient in pixels relative to the Palette object being filled.            </div>   
+         The y coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.            </div>   
                                                 <div class="param paddedDetails">
         <code>
             x2        </code>
-         The x coordinate of the end point of the gradient in pixels relative to the Palette object being filled.            </div>   
+         The x coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.            </div>   
                                                 <div class="param paddedDetails">
         <code>
             y2        </code>
-         The y coordinate of the end point of the gradient in pixels relative to the Palette object being filled.            </div>   
+         The y coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.            </div>   
+                                        </div>
+                </div>
+                    </div>
+                            <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+ </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___Image">
+            <span class="objType">constructor</span>
+            <span class="objName">Image</span>            
+        </a> 
+    </h3>
+                        <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type"></span>
+                    Image(<span class="type">Number</span>
+ x, <span class="type">Number</span>
+ y, <span class="type">String</span>
+ src)
+                </code> 
+            </div>          
+                <div class="comment">
+        
+ Creates an Image from a source file (.png, .gif, .svg, .jpg, etc.).
+     </div>
+        	<div class="parameters">
+        <span class="descSection">Parameters:</span><br/>
+                            <div>
+                    <div class="paramset"></div>
+                    <div>
+                                                <div class="param paddedDetails">
+        <code>
+            x        </code>
+         The x coordinate of the top-left corder of the image in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            y        </code>
+         The y coordinate of the top-left corder of the image in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            src        </code>
+         A URL to the source file for the image.            </div>   
                                         </div>
                 </div>
                     </div>
@@ -498,6 +612,194 @@
         <code>
             y2        </code>
          The y coordinate of the second point in the Line in pixels.            </div>   
+                                        </div>
+                </div>
+                    </div>
+                            <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+ </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___Pattern">
+            <span class="objType">constructor</span>
+            <span class="objName">Pattern</span>            
+        </a> 
+    </h3>
+                        <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type"></span>
+                    Pattern(<span class="type">String</span>
+ src, [<span class="type">String</span>
+ repeat])
+                </code> 
+            </div>          
+                <div class="comment">
+        
+ Creates an radial gradient for use in fills.
+     </div>
+        	<div class="parameters">
+        <span class="descSection">Parameters:</span><br/>
+                            <div>
+                    <div class="paramset"></div>
+                    <div>
+                                                <div class="param paddedDetails">
+        <code>
+            src        </code>
+         The URL of an image file.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            [repeat]        </code>
+         How the patter should repeat. Valid values are repeat, repeat-x, repeat-y and no-repeat. Defaults to repeat.            </div>   
+                                        </div>
+                </div>
+                    </div>
+                            <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+ </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___Quadratic">
+            <span class="objType">constructor</span>
+            <span class="objName">Quadratic</span>            
+        </a> 
+    </h3>
+                        <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type"></span>
+                    Quadratic(<span class="type">Number</span>
+ x1, <span class="type">Number</span>
+ y1, <span class="type">Number</span>
+ x2, <span class="type">Number</span>
+ y2, <span class="type">Number</span>
+ c_x1, <span class="type">Number</span>
+ c_y1, <span class="type">Number</span>
+ c_x2, <span class="type">Number</span>
+ c_y2)
+                </code> 
+            </div>          
+                <div class="comment">
+        
+ Creates an quadratic Bézier curve.
+     </div>
+        	<div class="parameters">
+        <span class="descSection">Parameters:</span><br/>
+                            <div>
+                    <div class="paramset"></div>
+                    <div>
+                                                <div class="param paddedDetails">
+        <code>
+            x1        </code>
+         The x coordinate of the start point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            y1        </code>
+         The y coordinate of the start point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            x2        </code>
+         The x coordinate of the end point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            y2        </code>
+         The y coordinate of the end point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            c_x1        </code>
+         The x coordinate of the first control point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            c_y1        </code>
+         The y coordinate of the first control point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            c_x2        </code>
+         The x coordinate of the second control point of the curve in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            c_y2        </code>
+         The y coordinate of the second control point of the curve in pixels.            </div>   
+                                        </div>
+                </div>
+                    </div>
+                            <div class="authors">
+            <span class="descSection">Authors:</span>
+                            <div class="paddedDetails"> Oliver Moran
+ </div>
+                    </div>      
+                            <div class="since">
+            <span class="descSection">Since:</span>
+                            <div class="paddedDetails"> 0.2
+ </div>
+                    </div>      
+                    <hr/>       
+                                                                                    <h3>
+        <a name="___Radial">
+            <span class="objType">constructor</span>
+            <span class="objName">Radial</span>            
+        </a> 
+    </h3>
+                        <div>
+                <code>
+                    <span class="modifiers">public</span>
+                    <span class="type"></span>
+                    Radial([<span class="type">Number</span>
+ x1], [<span class="type">Number</span>
+ y1], [<span class="type">Number</span>
+ radius1], [<span class="type">Number</span>
+ x2], [<span class="type">Number</span>
+ y2], <span class="type">Number</span>
+ radius2)
+                </code> 
+            </div>          
+                <div class="comment">
+        
+ Creates an radial gradient for use in fills.
+     </div>
+        	<div class="parameters">
+        <span class="descSection">Parameters:</span><br/>
+                            <div>
+                    <div class="paramset"></div>
+                    <div>
+                                                <div class="param paddedDetails">
+        <code>
+            [x1]        </code>
+         The x coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            [y1]        </code>
+         The y coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            [radius1]        </code>
+         The radius of the starting circle in pixels.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            [x2]        </code>
+         The x coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            [y2]        </code>
+         The y coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.            </div>   
+                                                <div class="param paddedDetails">
+        <code>
+            radius2        </code>
+         The radius of the ending circle in pixels.            </div>   
                                         </div>
                 </div>
                     </div>

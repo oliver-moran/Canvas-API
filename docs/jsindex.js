@@ -29,6 +29,15 @@
            elementType : "function"
        } ,         
        {
+           localName : "Library",
+           fullName : "Canvas.Library",
+           summary : "private static object Library",
+           ref : "logical/Canvas/Library.html",
+           parent : "Canvas",
+           type : "object",
+           elementType : "logical_container"
+       } ,         
+       {
            localName : "Palette",
            fullName : "Canvas.Palette",
            summary : "static class Palette",
@@ -96,6 +105,24 @@
            fullName : "Drawing.height",
            summary : "read property String height",
            ref : "logical/Drawing.html#___height",
+           parent : "Drawing",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "mousex",
+           fullName : "Drawing.mousex",
+           summary : "read property Number mousex",
+           ref : "logical/Drawing.html#___mousex",
+           parent : "Drawing",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "mousey",
+           fullName : "Drawing.mousey",
+           summary : "read property Number mousey",
+           ref : "logical/Drawing.html#___mousey",
            parent : "Drawing",
            type : "property",
            elementType : "variable"
@@ -182,10 +209,46 @@
            elementType : "function"
        } ,         
        {
+           localName : "Image",
+           fullName : "Palette.Image",
+           summary : "public constructor  Image(Number x, Number y, String src)",
+           ref : "logical/Palette.html#___Image",
+           parent : "Palette",
+           type : "constructor",
+           elementType : "function"
+       } ,         
+       {
            localName : "Line",
            fullName : "Palette.Line",
            summary : "public constructor  Line(Number x1, Number y1, Number x2, Number y2)",
            ref : "logical/Palette.html#___Line",
+           parent : "Palette",
+           type : "constructor",
+           elementType : "function"
+       } ,         
+       {
+           localName : "Pattern",
+           fullName : "Palette.Pattern",
+           summary : "public constructor  Pattern(String src, [String repeat])",
+           ref : "logical/Palette.html#___Pattern",
+           parent : "Palette",
+           type : "constructor",
+           elementType : "function"
+       } ,         
+       {
+           localName : "Quadratic",
+           fullName : "Palette.Quadratic",
+           summary : "public constructor  Quadratic(Number x1, Number y1, Number x2, Number y2, Number c_x1, Number c_y1, Number c_x2, Number c_y2)",
+           ref : "logical/Palette.html#___Quadratic",
+           parent : "Palette",
+           type : "constructor",
+           elementType : "function"
+       } ,         
+       {
+           localName : "Radial",
+           fullName : "Palette.Radial",
+           summary : "public constructor  Radial([Number x1], [Number y1], [Number radius1], [Number x2], [Number y2], Number radius2)",
+           ref : "logical/Palette.html#___Radial",
            parent : "Palette",
            type : "constructor",
            elementType : "function"
@@ -209,6 +272,15 @@
            elementType : "logical_container"
        } ,         
        {
+           localName : "alpha",
+           fullName : "Palette.defaults.alpha",
+           summary : "read write property Number alpha",
+           ref : "logical/Palette/defaults.html#___alpha",
+           parent : "Palette.defaults",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
            localName : "close",
            fullName : "Palette.defaults.close",
            summary : "read write property Boolean close",
@@ -223,6 +295,78 @@
            summary : "read write property String fill",
            ref : "logical/Palette/defaults.html#___fill",
            parent : "Palette.defaults",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "origin",
+           fullName : "Palette.defaults.origin",
+           summary : "static object origin",
+           ref : "logical/Palette/defaults/origin.html",
+           parent : "Palette.defaults",
+           type : "object",
+           elementType : "logical_container"
+       } ,         
+       {
+           localName : "x",
+           fullName : "Palette.defaults.origin.x",
+           summary : "read write property Number x",
+           ref : "logical/Palette/defaults/origin.html#___x",
+           parent : "Palette.defaults.origin",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "y",
+           fullName : "Palette.defaults.origin.y",
+           summary : "read write property Number y",
+           ref : "logical/Palette/defaults/origin.html#___y",
+           parent : "Palette.defaults.origin",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "rotation",
+           fullName : "Palette.defaults.rotation",
+           summary : "read write property Number rotation",
+           ref : "logical/Palette/defaults.html#___rotation",
+           parent : "Palette.defaults",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "shadow",
+           fullName : "Palette.defaults.shadow",
+           summary : "static object shadow",
+           ref : "logical/Palette/defaults/shadow.html",
+           parent : "Palette.defaults",
+           type : "object",
+           elementType : "logical_container"
+       } ,         
+       {
+           localName : "blur",
+           fullName : "Palette.defaults.shadow.blur",
+           summary : "read write property Number blur",
+           ref : "logical/Palette/defaults/shadow.html#___blur",
+           parent : "Palette.defaults.shadow",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "x",
+           fullName : "Palette.defaults.shadow.x",
+           summary : "read write property Number x",
+           ref : "logical/Palette/defaults/shadow.html#___x",
+           parent : "Palette.defaults.shadow",
+           type : "property",
+           elementType : "variable"
+       } ,         
+       {
+           localName : "y",
+           fullName : "Palette.defaults.shadow.y",
+           summary : "read write property Number y",
+           ref : "logical/Palette/defaults/shadow.html#___y",
+           parent : "Palette.defaults.shadow",
            type : "property",
            elementType : "variable"
        } ,         

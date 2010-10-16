@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Canvas API Clock Demo</title>
+
+<script language="javascript" src="src/canvas_api.js"></script>
+
+</head>
+<body>
+
+<script language="javascript">
+
+// First create a new drawing, which we shall call "clock"
+var clock = new Canvas.Drawing("clock", 300, 300, "white");
+
+// Then add the 12 ticks for the hours to the clock
+for (i=0; i<12; i++){
+	var tick = new Canvas.Palette.Line(150, 0, 150, 20);
+	tick.origin.y = +150;			// Move the origin of the tick to the centre of the clock
+	tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
+	clock.add("tick_"+i, tick);
+}
+
+// Create the three hand for the clock
+var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
+hour_hand.stroke.width = 10;
+clock.add("hour_hand", hour_hand);
+
+var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);
+minute_hand.stroke.width = 5;
+clock.add("minute_hand", minute_hand);
+
+var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
+second_hand.stroke.width = 1;
+clock.add("second_hand", second_hand);
+
+// This function will act as the call back for the animation, it will be called 12 times per second by default
+var update_clock = function(){
+	// Get the current time and rotate each hand accordingly
+	var time = new Date();
+	hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
+	minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
+	second_hand.rotation = (360/60)*time.getSeconds()+((360/60)/1000)*time.getMilliseconds();
+
+	clock.draw(); // Draw the clock
+}
+// Start the animation (the default frame rate in 12 fps)
+clock.animation.start(update_clock);
+
+</script>
+
+</body>
+</html>
