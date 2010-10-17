@@ -18,8 +18,7 @@ my_line.origin.x = 0;
 my_line.origin.y = -50;
 my_line.stroke.width = 10;
 my_line.stroke.color = "green";
-my_line.alpha = 50;
-
+my_line.alpha = 80;
 my_drawing.add("my_line", my_line);
 
 // var my_grad = new Canvas.Palette.Gradient(-50, -25, 50, 25);
@@ -28,31 +27,19 @@ my_drawing.add("my_line", my_line);
 // my_grad.addStop(1, "blue");
 var my_grad = new Canvas.Palette.Pattern("http://www.irishtimes.com/homepage/images/commercialfeatures/1224243151612.jpg?ts=1237547084");
 
-/*
-var my_rect = new Palette.Rectangle(50, 50, 200, 100);
-my_rect.fill = "green";
-my_rect.stroke.style = "transparent";
-
-var my_oval = new Palette.Circle();
-my_oval.x = 50;
-my_oval.y = 50;
-my_oval.radius = 20;
-my_oval.stroke.style = "red";
-my_oval.fill = my_grad;
-my_oval.end = 180;
-*/
-
 
 var my_rect = new Canvas.Palette.Rectangle(200, 200, 100, 50);
-my_rect.stroke.width = 2;
+my_rect.stroke.width = 10;
 my_rect.stroke.color = "black";
 my_rect.origin.x = -50;
 my_rect.origin.y = -25;
 my_rect.fill = my_grad;
+my_rect.stroke.join = "round";
 
 my_drawing.add("my_rect", my_rect);
 
 
+/*
 var my_arc = new Canvas.Palette.Quadratic(50, 150, 150, 150, 200, 10);
 my_arc.stroke.cap = "butt";
 my_arc.stroke.width = 10;
@@ -72,14 +59,20 @@ my_drawing.add("my_img", my_img);
 // my_drawing.add("line1", my_line);
 // my_drawing.add("rect1", my_rect);
 // my_drawing.add("oval1", my_oval);
+*/
 
-// my_drawing.draw();
+var my_text = new Canvas.Palette.Text(100, 100, "Hello World!");
+my_text.shadow.color = "black";
+my_text.baseline = "middle";
+my_text.align = "center";
+my_text.yscale = 250;
+
+my_drawing.add("my_text", my_text);
+
+my_drawing.draw();
 
 var callback = function(){
-	my_line.rotation++;
-	my_rect.rotation -= 5;
-	my_arc.rotation += 5;
-	my_img.rotation += 2;
+	my_text.rotation += 2;
 	
 	my_drawing.draw();
 }
