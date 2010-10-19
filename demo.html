@@ -21,6 +21,7 @@ my_line.stroke.color = "green";
 my_line.alpha = 80;
 my_drawing.add("my_line", my_line);
 
+
 // var my_grad = new Canvas.Palette.Gradient(-50, -25, 50, 25);
 // var my_grad = new Canvas.Palette.Radial(50);
 // my_grad.addStop(0, "green");
@@ -49,17 +50,18 @@ my_arc.origin.y = 0;
 // my_arc.fill = my_grad;
 
 my_drawing.add("my_circle", my_arc);
-
+*/
 var my_img = new Canvas.Palette.Image(20, 20, "http://www.irishtimes.com/homepage/images/commercialfeatures/1224243151612.jpg?ts=1237547084");
 my_img.origin.x = +50;
 my_img.origin.y = +50;
 my_drawing.add("my_img", my_img);
-
+/*
 // var my_bez = new Palette.Bezier();
 // my_drawing.add("line1", my_line);
 // my_drawing.add("rect1", my_rect);
 // my_drawing.add("oval1", my_oval);
 */
+
 
 var my_text = new Canvas.Palette.Text(100, 100, "Hello World!");
 my_text.shadow.color = "black";
@@ -69,18 +71,38 @@ my_text.yscale = 250;
 
 my_drawing.add("my_text", my_text);
 
+var my_audio = new Canvas.Palette.Audio("http://www.rdrop.com/~mulara/drone.wav");
+my_drawing.add("my_audio", my_audio);
+
+
 my_drawing.draw();
 
 var callback = function(){
-	my_text.rotation += 2;
-	
-	my_drawing.draw();
+	my_drawing.scene["my_line"].rotation += 2;
 }
 my_drawing.animation.start(callback);
 
+
+function oliver_doT(){
+	
+// alert("doing");
+  Canvas.Tweener.doTween(my_drawing.scene["my_rect"], {
+      time: 3,
+      transition: 'easeOutElastic',
+	  onComplete: function() { },
+	  rotation:180
+  });
+}
+
 </script>
 
+<input onclick="javascript:oliver_doT();" type="button" value="Animate!" />
+<input onclick="javascript:my_drawing.scene.my_audio.play();" type="button" value="Play!" />
+<input onclick="javascript:my_audio.pause();" type="button" value="Pause!" />
+<input onclick="javascript:my_audio.stop();" type="button" value="Stop!" />
+<input onclick="javascript:my_audio.setVolume(50);" type="button" value="Shhh!" />
+<input onclick="javascript:alert(my_audio.getDuration());" type="button" value="Duration!" />
 
-<input onclick="javascript:my_drawing.draw();" type="button" value="Update" />
+
 </body>
 </html>
