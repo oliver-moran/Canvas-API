@@ -5,22 +5,59 @@
 <title>Canvas API test</title>
 
 <script language="javascript" src="canvas_api.js"></script>
-<script language="javascript" src="my_canvas.js"></script>
 
 </head>
+
 <body>
 
-<canvas id="my_canvas" width="600" height="400">Does not support canvas.</canvas>
+<canvas id="clock" width="300" height="300"></canvas>
 
-<br/>
-<input onclick="javascript:my_canvas.oliver_doT();" type="button" value="Animate" />
-Video:
-<input onclick="javascript:my_canvas.drawing.scene.my_video.play();" type="button" value="Play" />
-<input onclick="javascript:my_canvas.drawing.scene.my_video.pause();" type="button" value="Pause" />
-<input onclick="javascript:my_canvas.drawing.scene.my_video.stop();" type="button" value="Stop" />
-<input onclick="javascript:my_canvas.drawing.scene.my_video.setVolume(10);" type="button" value="50% Volume" />
-<input onclick="javascript:alert(my_canvas.drawing.scene.my_video.getDuration());" type="button" value="Duration?" />
+<script language="javascript">
 
-<input type="text" id="tb" />
+var clock = {
+	init : function(){
+
+		// Add the 12 ticks for the hours to the clock
+		var tick = new Canvas.Palette.Line(150, 0, 150, 20);
+		for (i=0; i<12; i++){
+			tick.origin.y = +150;			// Move the origin of the tick to the centre of the clock
+			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
+			tick.stroke.color = "grey";
+			clock.drawing.add("tick_"+i, tick);
+		}
+
+		// Create the three hand for the clock
+		var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
+		hour_hand.stroke.width = 10;
+		hour_hand.stroke.cap = "round";
+		hour_hand.origin.y = 0;
+		clock.drawing.add("hour_hand", hour_hand);
+
+		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
+		minute_hand.stroke.width = 5;
+		minute_hand.stroke.cap = "round";
+		clock.drawing.add("minute_hand", minute_hand);
+	
+		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
+		second_hand.stroke.width = 1;
+		clock.drawing.add("second_hand", second_hand);
+	
+		// Start the animation (the default frame rate in 12 fps)
+		clock.drawing.animation.framerate = 1;
+		clock.drawing.animation.callback = clock.update;
+	},
+	
+	//This function will act as the call back for the animation, it will be called 12 times per second by default
+	update : function(){
+		// Get the current time and rotate each hand accordingly
+		var time = new Date();
+		clock.drawing.scene.hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
+		clock.drawing.scene.minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
+		clock.drawing.scene.second_hand.rotation = (360/60)*time.getSeconds();
+	}
+}
+
+</script>
+
 </body>
 </html>

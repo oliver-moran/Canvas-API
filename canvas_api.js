@@ -74,6 +74,27 @@ var Canvas = {
 				// call the init function in that drawing
 				eval(canvasElements[i].id).init();
 			}
+	},
+	
+	Utils : {
+		/**
+		 * Bequeaths the attributes of ancestor onto descendent.
+		 * @function {private static void} Canvas.Utils.inherit
+		 * @param {Object} descendant The object to bequeath attributes to.
+		 * @param {Object} ancestor The object to inherit attributes from.
+		 * @return Nothing
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		inherit : function(descendant, ancestor){
+			for (var prop in ancestor) {
+				if (typeof ancestor[prop] == "object") {
+					descendant[prop] = new Object();
+					Canvas.Utils.inherit(descendant[prop], ancestor[prop]);
+				}
+				descendant[prop] = ancestor[prop];
+			}
+		}
 	}
 };
 
@@ -563,7 +584,7 @@ Canvas.Palette.Object = function(){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.start = 360;
+	this.end = 360;
 	/**
 	 * Whether a Circle object is drawn clockwise (true) or anti-clockwise (false).
 	 * @property {read write Boolean} Palette.Object.clockwise
@@ -591,7 +612,7 @@ Canvas.Palette.Object = function(){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.align = "start";
+	this.baseline = "start";
 	/**
 	 * The horizontal scaling to be applied to a Pallet object. 100 is original size. 50 is half size. 200 is double size.
 	 * @property {read write Number} Palette.Object.xscale
@@ -606,8 +627,6 @@ Canvas.Palette.Object = function(){
 	 * @since 0.2
 	 */
 	this.yscale = 100;
-
-
 	/**
 	 * Clipping to be applied to the source of images and video.
 	 * @object {static} Palette.Object.clip
@@ -697,7 +716,7 @@ Canvas.Palette.Object = function(){
 			if (this instanceof Canvas.Palette.Line) obj2 = new Canvas.Palette.Line();
 			else if (this instanceof Canvas.Palette.Polygon) obj2 = new Canvas.Palette.Polygon();
 			else if (this instanceof Canvas.Palette.Rectangle) obj2 = new Canvas.Palette.Rectangle();
-			else if (this instanceof Canvas.Palette.Circle) obj2 = new Canvas.Palette.Circle();
+			else if (this instanceof Canvas.Palette.Circle) { obj2 = new Canvas.Palette.Circle(); }
 			else if (this instanceof Canvas.Palette.Arc) obj2 = new Canvas.Palette.Arc();
 			else if (this instanceof Canvas.Palette.Bezier) obj2 = new Canvas.Palette.Bezier();
 			else if (this instanceof Canvas.Palette.Quadratic) obj2 = new Canvas.Palette.Quadratic();
@@ -721,8 +740,8 @@ Canvas.Palette.Object = function(){
 		
 		return obj2;
 	};
-
 };
+
 
 /**
  * Creates a Line.
@@ -735,6 +754,8 @@ Canvas.Palette.Object = function(){
  * @since 0.2
  */
 Canvas.Palette.Line = function (x1, y1, x2, y2){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+	
 	if ((x1 && y1 && x2 && y2) != undefined){
 		this.x1 = x1;
 		this.y1 = y1;
@@ -760,7 +781,7 @@ Canvas.Palette.Line = function (x1, y1, x2, y2){
 		};
 	}
 };
-Canvas.Palette.Line.prototype = new Canvas.Palette.Object();
+
 
 /**
  * Creates a Polygon.
@@ -772,6 +793,8 @@ Canvas.Palette.Line.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Polygon = function (){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+	
 	if (arguments.length%2 == 0){
 		this.points = new Array();
 		this.addPoint = function(x, y){
@@ -809,7 +832,6 @@ Canvas.Palette.Polygon = function (){
 		};
 	}
 };
-Canvas.Palette.Polygon.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -823,6 +845,8 @@ Canvas.Palette.Polygon.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Rectangle = function(x, y, width, height){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x && y && width && height) != undefined){
 		this.x = x;
 		this.y = y;
@@ -851,7 +875,6 @@ Canvas.Palette.Rectangle = function(x, y, width, height){
 		};
 	}
 };
-Canvas.Palette.Rectangle.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -864,11 +887,13 @@ Canvas.Palette.Rectangle.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Circle = function(x, y, radius){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+	
 	if ((x && y && radius) != undefined){
 		this.x = x;
 		this.y = y;
 		this.radius = radius;
-		
+
 		this.draw = function(){
 			this.setStyle();
 		
@@ -889,7 +914,6 @@ Canvas.Palette.Circle = function(x, y, radius){
 		};
 	}
 };
-Canvas.Palette.Circle.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -906,6 +930,8 @@ Canvas.Palette.Circle.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x1 && y1 && x2 && y2 && x3 && y3 && radius) != undefined){
 		this.x1 = x1;
 		this.y1 = y1;
@@ -941,7 +967,6 @@ Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
 		};
 	}
 };
-Canvas.Palette.Arc.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -959,6 +984,8 @@ Canvas.Palette.Arc.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x1 && y1 && x2 && y2 && c_x1 && c_y1 && c_x2 && c_y2) != undefined){
 		this.x1 = x1;
 		this.y1 = y1;
@@ -993,7 +1020,6 @@ Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
 		};
 	}
 };
-Canvas.Palette.Bezier.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1011,6 +1037,8 @@ Canvas.Palette.Bezier.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x1 && y1 && x2 && y2 && c_x && c_y) != undefined){
 		this.x1 = x1;
 		this.y1 = y1;
@@ -1043,7 +1071,6 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 		};
 	}
 };
-Canvas.Palette.Quadratic.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1056,6 +1083,8 @@ Canvas.Palette.Quadratic.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Image = function(x, y, src){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x && y && src) != undefined){
 		this.x = x;
 		this.y = y;
@@ -1081,7 +1110,6 @@ Canvas.Palette.Image = function(x, y, src){
 		};
 	}
 };
-Canvas.Palette.Image.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1092,6 +1120,8 @@ Canvas.Palette.Image.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Audio = function(src){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((src) != undefined){
 		this.audio = Canvas.Library.addAudio(src);
 		
@@ -1120,7 +1150,6 @@ Canvas.Palette.Audio = function(src){
 		};
 	}
 };
-Canvas.Palette.Audio.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1133,6 +1162,8 @@ Canvas.Palette.Audio.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Video = function(x, y, src){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x && y && src) != undefined){
 		this.x = x;
 		this.y = y;
@@ -1179,7 +1210,6 @@ Canvas.Palette.Video = function(x, y, src){
 		};
 	}
 };
-Canvas.Palette.Video.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1192,6 +1222,8 @@ Canvas.Palette.Video.prototype = new Canvas.Palette.Object();
  * @since 0.2
  */
 Canvas.Palette.Text = function(x, y, text){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+
 	if ((x && y && text) != undefined){
 		this.x = x;
 		this.y = y;
@@ -1235,7 +1267,6 @@ Canvas.Palette.Text = function(x, y, text){
 		};
 	}
 };
-Canvas.Palette.Text.prototype = new Canvas.Palette.Object();
 
 
 /**
@@ -1277,6 +1308,7 @@ Canvas.Palette.Gradient = function (x1, y1, x2, y2){
 		this.stops.push(stop);
 	};
 };
+
 
 /**
  * Creates an radial gradient for use in fills.
@@ -1330,6 +1362,7 @@ Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
 		this.stops.push(stop);
 	};
 };
+
 
 /**
  * Creates an radial gradient for use in fills.
