@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="jGrouseDoc-2.0/ant180/docs/|jGrouseDoc-2.0/skins/noframes/js/|docs/|jGrouseDoc-2.0/sample/|src/|jGrouseDoc-2.0/api/|jGrouseDoc-2.0/skins/common/js/|jGrouseDoc-2.0/ant/docs/|jGrouseDoc-2.0/sample/jbooze/browser/" kind="src" path=""/>
+	<classpathentry kind="src" path="docs"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/ant/docs"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/ant180/docs"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/api"/>
+	<classpathentry excluding="jbooze/browser/" kind="src" path="jGrouseDoc-2.0/sample"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/sample/jbooze/browser"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/skins/common/js"/>
+	<classpathentry kind="src" path="jGrouseDoc-2.0/skins/noframes/js"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path=""/>
+</classpath>
