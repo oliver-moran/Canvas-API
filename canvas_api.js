@@ -278,6 +278,32 @@ Canvas.Drawing = function(canvas){
 	
 	
 	/**
+	 * A method to bubble sort the objects in the scene by layer.
+	 * @function {private static void} Canvas.Utils.bubbleSort
+	 * @param {Array} array The object to bequeath attributes to.
+	 * @return An array containing the objects in the scene.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.sceneByLayer = function() {
+		var array = new Array();
+		for (var obj in this.scene)
+			array.push(this.scene[obj]);
+		
+		for(var i = 0; i < array.length; i++) {
+			for(var j = 0; j < (array.length-1); j++) {
+				if(array[j].layer > array[j+1].layer) {
+					var tmp = array[j+1];
+					array[j+1] = array[j];
+					array[j] = tmp;
+				}
+			}
+		}
+		return array;
+	};
+	
+	
+	/**
 	 * Removes a Palette object from the Drawing.
 	 * @function {public void} Drawing.remove
 	 * @return Nothing
@@ -307,9 +333,10 @@ Canvas.Drawing = function(canvas){
 		}
 
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		for (var object in this.scene){
+		var layers = this.sceneByLayer();
+		for (var i=0; i<layers.length; i++){
 			// try {
-				this.scene[object].draw();
+				layers[i].draw();
 			// } catch (err) {
 			// }
 		}
@@ -662,8 +689,15 @@ Canvas.Palette.Object = function(){
 	 * @since 0.2
 	 */
 	// this.clip.height = undefined;
-	
+	/**
+	 * A number representing the z-order of layers in which objects are ordered. Objects with higher layer numbers are layerd above objects with lower layer numbers.
+	 * @property {read write Number} Palette.Object.layer
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.clip.layer = 0;
 
+	
 	// COMMON METHODS (MOSTLY PRIVATE)
 	
 	/* A private function that sets the style just before the object is drawn. */
