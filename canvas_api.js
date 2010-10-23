@@ -73,6 +73,10 @@ var Canvas = {
 				eval(canvasElements[i].id).drawing = Canvas.Drawings[canvasElements[i].id];
 				// call the init function in that drawing
 				eval(canvasElements[i].id).init();
+				// draw it (there may be a delay between now and the start of animation)
+				eval(canvasElements[i].id).drawing.draw();
+				// auto start the animation
+				eval(canvasElements[i].id).drawing.start();
 			}
 	},
 	
@@ -160,66 +164,59 @@ Canvas.Drawing = function(canvas){
 	// ANIMATION
 	
 	/**
-	 * Animation related functions and properties.
-	 * @object {static} Drawing.animation
-	 * @see Drawing.animation.start
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.animation = {};
-	/**
 	 * The frame rate in fames per second of animations.
-	 * @property {read write Number} Drawing.animation.framerate
-	 * @see Drawing.animation.start
+	 * @property {read write Number} Drawing.framerate
+	 * @see Drawing.start
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.animation.framerate = 12;
+	this.framerate = 12;
 	/**
-	 * A function to call back at each frame of animation.
-	 * @property {read write Function} Drawing.animation.callback
-	 * @see Drawing.animation.start
+	 * A function called immediately before the drawing is drawn.
+	 * @property {read write Function} Drawing.onBeforeDraw
+	 * @see Drawing.onDraw
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.animation.callback = function(){};
+	this.onBeforeDraw = function(){};
 	/**
-	 * Starts animation (calls callback at regular intervals). Called by default when intialising a drawing object.
-	 * @function {public static void} Drawing.animation.start
-	 * @param {Function} callback A function to call on each frame of the animation
+	 * A function called immediately after the drawing is drawn.
+	 * @property {read write Function} Drawing.onDraw
+	 * @see Drawing.onBeforeDraw
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.onDraw = function(){};
+	/**
+	 * Starts animation (calls draw at regular intervals). Called by default when intialising a drawing object.
+	 * @function {public static void} Drawing.start
 	 * @return Nothing
-	 * @see Drawing.animation.framerate
-	 * @see Drawing.animation.stop
+	 * @see Drawing.framerate
+	 * @see Drawing.stop
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.animation._parent = this; // a self reference
-	this.animation.start = function(callback){
+	this.start = function(){
 		this.stop();
-		if (typeof callback == "function") this.animation.callback = callback;
-		var self = this._parent;
+		var self = this;
 		this.interval = setInterval(function(){
-				self.animation.callback();
-				self.draw();
+				if (!self.skipFrame) self.draw();
 			}, 1000/this.framerate);
 	};
 	/**
 	 * Stops animation.
-	 * @function {public void} Drawing.animation.stop
+	 * @function {public void} Drawing.stop
 	 * @return Nothing
-	 * @see Drawing.animation.start
+	 * @see Drawing.start
 	 * @return Nothing
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.animation.stop = function(){
+	this.stop = function(){
 		clearInterval(this.interval);
 	};
 	
-	// auto start the animation
-	this.animation.start();
 
-	
 	// MANAGE THE SCENE
 	
 	this.scene = {}; // an object that holds the "scene"
@@ -322,24 +319,32 @@ Canvas.Drawing = function(canvas){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
+	this.skipFrame = false; // basic frame skipping
 	this.draw = function(){
 		if (!this.ready()){
-			// if images are no loaded them set an timeout that continually checks that they have
+			this.skipFrame = true;
+			// if images are not loaded them set an timeout that continually checks that they have
 			var self = this;
 			setTimeout(function(){
 					self.draw();
 				}, 1);
 			return;
 		}
+		this.skipFrame = false;
+		
+		// before draw
+		this.onBeforeDraw();
 
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		var layers = this.sceneByLayer();
-		for (var i=0; i<layers.length; i++){
+		for (var i in layers){
 			// try {
 				layers[i].draw();
 			// } catch (err) {
 			// }
 		}
+		
+		this.onDraw();
 	};
 };
 

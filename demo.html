@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Canvas API test</title>
+<title>Canvas API examples</title>
 
 <script language="javascript" src="canvas_api.js"></script>
 
@@ -47,11 +47,11 @@ var clock = {
 		clock.drawing.add("second_hand", second_hand);
 	
 		// Start the animation (the default frame rate in 12 fps)
-		clock.drawing.animation.framerate = 1;
-		clock.drawing.animation.callback = clock.update;
+		clock.drawing.framerate = 1;
+		clock.drawing.onBeforeDraw = clock.update;
 	},
 	
-	//This function will act as the call back for the animation, it will be called 12 times per second by default
+	// This function will act as the callback for the animation
 	update : function(){
 		// Get the current time and rotate each hand accordingly
 		var time = new Date();
