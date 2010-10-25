@@ -19,18 +19,18 @@ var clock = {
 		
 		clock.debug = true;
 		
-		face = new Canvas.Palette.Group(0,0);
-		clock.drawing.add("face", face);
+		// face = new Canvas.Palette.Group(0,0);
+		// face.alpha = 50;
+		// clock.drawing.add("face", face);
 		
 		// Add the 12 ticks for the hours to the clock
-		var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 		for (i=0; i<12; i++){
+			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
 			tick.stroke.color = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
-			face.add("tick_"+i, tick, true);
+			clock.drawing.add("tick_"+i, tick, true);
 		}
-
 
 		hands = new Canvas.Palette.Group(0,0);
 		hands.layer = 1;
@@ -63,6 +63,29 @@ var clock = {
 		text.align="center";
 		text.fill = "lightGrey";		
 		clock.drawing.add("text_"+i, text);
+
+		var mask = new Canvas.Palette.Mask(0,0);
+		var mask_group = new Canvas.Palette.Group(0,0);
+		var circle = new Canvas.Palette.Circle(0,0,30);
+		var circle2 = new Canvas.Palette.Circle(30,0,30);
+		var circle3 = new Canvas.Palette.Circle(60,0,30);
+
+		
+		mask_group.add("circle", circle, true);
+		mask_group.add("circle2", circle2, true);
+		// mask.add("mask_group", mask_group, true);
+		mask_group.add("circle3", circle3, true);
+		mask.add("grp", mask_group, true);
+		second_hand.mask = mask;
+		// alert(mask.elements["circle"].isMaskObject());
+
+		/*
+		mask_group.add("circle", circle, true);
+		mask_group.add("circle2", circle2, true);
+		clock.drawing.add("circle3", circle3, true);
+		clock.drawing.add("mask_group2", mask_group, true);
+		*/
+		// alert(mask_group.members["circle"].fill)
 
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){
