@@ -1,5 +1,5 @@
 /*
- * Canvas API: a JavaScript API for working with the HTML 5 canvas tag.
+ * Canvas API: A JavaScript library for the HTML5 canvas tag.
  *
  * Copyright © 2010 Oliver Moran <oliver.moran@N0!spam@gmail.com>
  * Contributors: Yuichi Tateno, John Resig
@@ -8,16 +8,16 @@
 
 /*
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  * 
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
@@ -67,6 +67,7 @@ var Canvas = {
 		for (var i=0; i<canvasElements.length; i++)
 			// if it has an ID and an object with the same name as that ID exists...
 			if (canvasElements[i] != undefined && typeof eval(canvasElements[i].id).init == "function"){
+				if (!canvasElements[i].getContext) return false; // does not support the canvas tag
 				// create a new drawing with that name
 				Canvas.Drawings[canvasElements[i].id] = new Canvas.Drawing(canvasElements[i]);
 				// create a reference to that drawing in the object of the same name
@@ -391,17 +392,13 @@ Canvas.Drawing = function(canvas){
 		var debug_rect = new Canvas.Palette.Rectangle(0, _this.canvas.height-15, _this.canvas.width, 15);
 		debug_rect.stroke.color = "transparent";
 		debug_rect.fill = "lightGrey";
+		debug_rect.alpha = 75;
 		debug_rect.draw([this], _this.context);
 		
 		var debug_text = new Canvas.Palette.Text(3, _this.canvas.height-14, "Render time: " + _this.debug.renderTimes[_this.debug.renderTimes.length-1] + "ms (avg.: "+_this.debug.calculateAverageRenderTime()+"ms)");
 		debug_text.font = "10px 'Courier', monospace";
 		if (_this.debug.renderTimes[_this.debug.renderTimes.length-1] > 1000/_this.framerate) debug_text.fill = "red";
 		debug_text.draw([this], _this.context);
-		
-		var debug_line = new Canvas.Palette.Line(0, _this.canvas.height-15, _this.canvas.width, _this.canvas.height-15);
-		debug_line.stroke.color = "grey";
-		debug_line.stroke.width = 1;
-		debug_line.draw([this], _this.context);
 	};
 };
 
