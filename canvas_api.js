@@ -98,6 +98,23 @@ var Canvas = {
 				}
 				descendant[prop] = ancestor[prop];
 			}
+		},
+		/**
+		 * Creates a new array from an existing one, pushes a new element onto it and returns the new array.
+		 * @function {private static void} Canvas.Utils.inherit
+		 * @param {Array} array The array to copy.
+		 * @param {Object} item The item to be pushed onto the copy.
+		 * @return A new array.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		pushArray : function(array, item){
+			var copy = new Array();
+			for (var i=0; i<array.length; i++){
+				copy.push(array[i]);
+			}
+			copy.push(item);
+			return copy;
 		}
 	}
 };
@@ -327,11 +344,10 @@ Canvas.Drawing = function(canvas){
 	 * @since 0.2
 	 */
 	this.skipFrame = false; // basic frame skipping
-	this.draw = function(sender, context)
-{
+	this.draw = function(){
 		if (!this.ready()){
 			this.skipFrame = true;
-			// if images are not loaded them set an timeout that continually checks that they have
+			// if images are not loaded then set a timeout that continually checks that they have
 			var self = this;
 			setTimeout(function(){
 					self.draw();
@@ -346,7 +362,7 @@ Canvas.Drawing = function(canvas){
 		
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		var layers = this.sceneByLayer();
-		for (var i in layers) if (layers[i]) layers[i].draw(this, this.context);
+		for (var i in layers) if (layers[i]) layers[i].draw([this], this.context);
 		
 		var draw_end_time = new Date();
 		
@@ -375,17 +391,17 @@ Canvas.Drawing = function(canvas){
 		var debug_rect = new Canvas.Palette.Rectangle(0, _this.canvas.height-15, _this.canvas.width, 15);
 		debug_rect.stroke.color = "transparent";
 		debug_rect.fill = "lightGrey";
-		debug_rect.draw(this, _this.context);
+		debug_rect.draw([this], _this.context);
 		
 		var debug_text = new Canvas.Palette.Text(3, _this.canvas.height-14, "Render time: " + _this.debug.renderTimes[_this.debug.renderTimes.length-1] + "ms (avg.: "+_this.debug.calculateAverageRenderTime()+"ms)");
 		debug_text.font = "10px 'Courier', monospace";
 		if (_this.debug.renderTimes[_this.debug.renderTimes.length-1] > 1000/_this.framerate) debug_text.fill = "red";
-		debug_text.draw(this, _this.context);
+		debug_text.draw([this], _this.context);
 		
 		var debug_line = new Canvas.Palette.Line(0, _this.canvas.height-15, _this.canvas.width, _this.canvas.height-15);
 		debug_line.stroke.color = "grey";
 		debug_line.stroke.width = 1;
-		debug_line.draw(this, _this.context);
+		debug_line.draw([this], _this.context);
 	};
 };
 
@@ -794,7 +810,7 @@ Canvas.Palette.Object = function(){
 		if (this.fill instanceof Canvas.Palette.Gradient || 
 			this.fill instanceof Canvas.Palette.Radial || 
 			this.fill instanceof Canvas.Palette.Pattern){
-				context.fillStyle = this.fill.draw(this, context);
+				context.fillStyle = this.fill.draw([this], context);
 		} else {
 			context.fillStyle = this.fill;
 		}
@@ -852,13 +868,18 @@ Canvas.Palette.Object = function(){
 
 
 
+	this.isMaskingObject = function(senders){
+		for (var i=0; i<senders.length; i++)
+			if (senders[i] instanceof Canvas.Palette.Mask) return true;
+		return false;
+	};
 	
-	this.beforeDrawObject = function(x, y, sender, context){
-		if (!(sender instanceof Canvas.Palette.Mask)) {
+	this.beforeDrawObject = function(x, y, senders, context){
+		if (!this.isMaskingObject(senders)) {
 			if (this.mask instanceof Canvas.Palette.Mask) {
 				context.save();
 				context.translate(x, y);
-				this.mask.draw(this, context);
+				this.mask.draw(Canvas.Utils.pushArray(senders, this), context);
 				context.translate(-x, -y);
 			}
 			this.setStyle(context); // restore the style parameters
@@ -873,13 +894,13 @@ Canvas.Palette.Object = function(){
 		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
 	};
 	
-	this.afterDrawObject = function(x, y, sender, context){
+	this.afterDrawObject = function(x, y, senders, context){
 		// reverse the transformations in series
 		context.transform(this.xscale/100, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), this.yscale/100, 0, 0);
 		context.rotate(this.rotation * -Math.PI/180);
 		context.translate(x, y);
 
-		if (!(sender instanceof Canvas.Palette.Mask)) {
+		if (!this.isMaskingObject(senders)) {
 			if (this.mask instanceof Canvas.Palette.Mask) context.restore();
 			context.globalAlpha /= (this.alpha/100); // undo the multiplication
 		}
@@ -907,15 +928,15 @@ Canvas.Palette.Line = function (x1, y1, x2, y2){
 		this.y2 = y2;
 		
 		// The private draw function
-		this.draw = function(sender, context){
-			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, sender, context);
+		this.draw = function(senders, context){
+			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, senders, context);
 				
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.moveTo(-this.pivot.x, -this.pivot.y);
 			context.lineTo((this.x2-this.x1)-this.pivot.x, (this.y2-this.y1)-this.pivot.y);
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 
-			this.afterDrawObject(-(this.x1+this.pivot.x), -(this.y1+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.x1+this.pivot.x), -(this.y1+this.pivot.y), senders, context);
 		};
 	}
 };
@@ -945,21 +966,21 @@ Canvas.Palette.Polygon = function (){
 			this.addPoint(arguments[i], arguments[i+1]);
 		}
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 			
-			this.beforeDrawObject(this.points[0].x+this.pivot.x, this.points[0].y+this.pivot.y, sender, context);
+			this.beforeDrawObject(this.points[0].x+this.pivot.x, this.points[0].y+this.pivot.y, senders, context);
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.moveTo(-this.pivot.x, -this.pivot.y);
 			for (var i=1; i<this.points.length; i++)
 				context.lineTo((this.points[i].x-this.points[0].x)-this.pivot.x, (this.points[i].y-this.points[0].y)-this.pivot.y);
 			if (this.close == true) context.closePath();
 			context.fill();
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 
-			this.afterDrawObject(-(this.points[0].x+this.pivot.x), -(this.points[0].y+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.points[0].x+this.pivot.x), -(this.points[0].y+this.pivot.y), senders, context);
 		};
 	}
 };
@@ -984,22 +1005,22 @@ Canvas.Palette.Rectangle = function(x, y, width, height){
 		this.width = width;
 		this.height = height;
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			var w2 = this.width/2;
 			var h2 = this.height/2;
 			var o_x = this.x + w2 + this.pivot.x;
 			var o_y = this.y + h2 + this.pivot.y;
 
-			this.beforeDrawObject(o_x, o_y, sender, context);
+			this.beforeDrawObject(o_x, o_y, senders, context);
 
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.fillRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 			context.strokeRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 
-			this.afterDrawObject(-o_x, -o_y, sender, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context);
 		};
 	}
 };
@@ -1022,17 +1043,17 @@ Canvas.Palette.Circle = function(x, y, radius){
 		this.y = y;
 		this.radius = radius;
 
-		this.draw = function(sender, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, sender, context);
+		this.draw = function(senders, context){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.arc(-this.pivot.x, -this.pivot.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
 			if (this.close == true) context.closePath();
 			context.fill();
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 		};
 	}
 };
@@ -1063,23 +1084,23 @@ Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
 		this.y3 = y3;
 		this.radius = radius;
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			var o_x = (this.x1 + this.x3)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y3)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, sender, context);
+			this.beforeDrawObject(o_x, o_y, senders, context);
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.arcTo(this.x2-o_x, this.y2-o_y, this.x3-o_x, this.y3-o_y, this.radius); // Create an arc.
 			context.lineTo(this.x3-o_x, this.y3-o_y);
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 			
 			if (this.close == true) context.closePath();
 			context.fill();
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 
-			this.afterDrawObject(-o_x, -o_y, sender, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context);
 		};
 	}
 };
@@ -1112,21 +1133,21 @@ Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
 		this.c_x2 = c_x2;
 		this.c_y2 = c_y2;
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, sender, context);
+			this.beforeDrawObject(o_x, o_y, senders, context);
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.bezierCurveTo(this.c_x1-o_x, this.c_y1-o_y, this.c_x2-o_x, this.c_y2-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
 			if (this.close == true) context.closePath();
 			context.fill();
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 
-			this.afterDrawObject(-o_x, -o_y, sender, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context);
 		};
 	}
 };
@@ -1157,21 +1178,21 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 		this.c_x = c_x;
 		this.c_y = c_y;
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, sender, context);
+			this.beforeDrawObject(o_x, o_y, senders, context);
 			
-			if (!(sender instanceof Canvas.Palette.Mask)) context.beginPath();
+			if (!this.isMaskingObject(senders)) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.quadraticCurveTo(this.c_x-o_x, this.c_y-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
 			if (this.close == true) context.closePath();
 			context.fill();
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!(sender instanceof Canvas.Palette.Mask)) context.stroke();
+			if (!this.isMaskingObject(senders)) context.stroke();
 
-			this.afterDrawObject(-o_x, -o_y, sender, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context);
 		};
 	}
 };
@@ -1194,8 +1215,8 @@ Canvas.Palette.Image = function(x, y, src){
 		this.y = y;
 		this.image = Canvas.Library.addImage(src);
 		
-		this.draw = function(sender, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, sender, context);
+		this.draw = function(senders, context){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 			
 			if (this.clip.width == undefined) 
 				this.clip.width = this.video.videoWidth - this.clip.x;
@@ -1204,7 +1225,7 @@ Canvas.Palette.Image = function(x, y, src){
 
 			context.drawImage(this.image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 		};
 	}
 };
@@ -1243,7 +1264,7 @@ Canvas.Palette.Audio = function(src){
 			return this.audio.duration;
 		};
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			// an empty function solely to allow object this to be added to scenes
 		};
 	}
@@ -1266,7 +1287,6 @@ Canvas.Palette.Video = function(x, y, src){
 		this.x = x;
 		this.y = y;
 		this.video = Canvas.Library.addVideo(src);
-		// alert(this.video.ended);
 
 		this.play = function(){
 			this.video.play();
@@ -1288,8 +1308,8 @@ Canvas.Palette.Video = function(x, y, src){
 			return this.video.duration;
 		};
 		
-		this.draw = function(sender, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, sender, context);
+		this.draw = function(senders, context){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 			
 			if (this.clip.width == undefined) 
 				this.clip.width = this.video.videoWidth - this.clip.x;
@@ -1298,7 +1318,7 @@ Canvas.Palette.Video = function(x, y, src){
 			
 			context.drawImage(this.video, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 		};
 	}
 };
@@ -1324,14 +1344,14 @@ Canvas.Palette.Text = function(x, y, text){
 		this.fill = this.stroke.color;
 		this.stroke.color = "transparent";
 		
-		this.draw = function(sender, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, sender, context);
+		this.draw = function(senders, context){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 
 			context.fillText(this.text, -this.pivot.x, -this.pivot.y);
 			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 			context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), sender, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 		};
 		
 		
@@ -1429,16 +1449,17 @@ Canvas.Palette.Group = function(x, y){
 	};
 	
 
-	this.draw = function(sender, context){
-		this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, sender, context);
+	this.draw = function(senders, context){
+		this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 		
 		context.translate(-this.pivot.x, -this.pivot.y);
 		// loop through the Group members
 		var layers = this.membersByLayer();
-		for (var i in layers) if (layers[i]) layers[i].draw(this, context);
+		for (var i in layers)
+			if (layers[i]) layers[i].draw(Canvas.Utils.pushArray(senders, this), context);
 		context.translate(this.pivot.x, this.pivot.y);
 		
-		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), sender, context);
+		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 	};
 };
 
@@ -1516,21 +1537,21 @@ Canvas.Palette.Mask = function(x, y){
 	};
 	
 
-	this.draw = function(sender, context){
+	this.draw = function(senders, context){
 		context.translate(-(this.x+this.pivot.x), -(this.y+this.pivot.y));
 		context.rotate(this.rotation * Math.PI/180);
 		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
 
 		context.strokeStyle = "transparent";
 		context.shadowColor = "transparent";
-		context.fillStyle = "Cyan";
+		context.fillStyle = "transparent";
 		
 		context.beginPath();
 
 		// loop through the Mask's elements
 		var layers = this.elementsByLayer();
 		for (var i in layers) if (layers[i]) 
-			if (layers[i].draw) layers[i].draw(this, context);
+			if (layers[i].draw) layers[i].draw(Canvas.Utils.pushArray(senders, this), context);
 		context.clip();
 		
 		// reverse the transformations in series
@@ -1558,11 +1579,11 @@ Canvas.Palette.Gradient = function (x1, y1, x2, y2){
 		this.x2 = x2;
 		this.y2 = y2;
 		
-		this.draw = function(sender, context){
-			var x1 = this.x1 - sender.pivot.x;
-			var y1 = this.y1 - sender.pivot.y;
-			var x2 = this.x2 - sender.pivot.x;
-			var y2 = this.y2 - sender.pivot.y;
+		this.draw = function(senders, context){
+			var x1 = this.x1 - senders[senders.length-1].pivot.x;
+			var y1 = this.y1 - senders[senders.length-1].pivot.y;
+			var x2 = this.x2 - senders[senders.length-1].pivot.x;
+			var y2 = this.y2 - senders[senders.length-1].pivot.y;
 			
 			var gradient = context.createLinearGradient(x1, y1, x2, y2);
 			for (var stop in this.stops)
@@ -1612,11 +1633,11 @@ Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
 		this.y2 = y2;
 		this.radius2 = radius2;
 		
-		this.draw = function(sender, context){
-			var x1 = this.x1 - theObject.pivot.x;
-			var y1 = this.y1 - theObject.pivot.y;
-			var x2 = this.x2 - theObject.pivot.x;
-			var y2 = this.y2 - theObject.pivot.y;
+		this.draw = function(senders, context){
+			var x1 = this.x1 - senders[senders.length-1].pivot.x;
+			var y1 = this.y1 - senders[senders.length-1].pivot.y;
+			var x2 = this.x2 - senders[senders.length-1].pivot.x;
+			var y2 = this.y2 - senders[senders.length-1].pivot.y;
 			
 			var gradient = context.createRadialGradient(x1, y1, this.radius1, x2, y2, this.radius2);
 			for (var stop in this.stops)
@@ -1651,7 +1672,7 @@ Canvas.Palette.Pattern = function (src, repeat){
 		this.image = Canvas.Library.addImage(src);
 		this.repeat = repeat;
 		
-		this.draw = function(sender, context){
+		this.draw = function(senders, context){
 			var gradient = context.createPattern(this.image, this.repeat);
 			return gradient;
 		};
