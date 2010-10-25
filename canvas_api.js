@@ -1347,10 +1347,11 @@ Canvas.Palette.Text = function(x, y, text){
 		this.draw = function(senders, context){
 			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
 
-			context.fillText(this.text, -this.pivot.x, -this.pivot.y);
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
-			
+			try{ // stroke and fill text are not supported on Camino
+				context.fillText(this.text, -this.pivot.x, -this.pivot.y);
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
+			} catch(err){}
 			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
 		};
 		
