@@ -10,54 +10,68 @@
 
 <body>
 
-<canvas id="clock" width="300" height="300"></canvas>
+<canvas id="clock" width="300" height="300">Your browser does not support the canvas tag.</canvas>
 
 <script language="javascript">
 
 var clock = {
 	init : function(){
-
+		
+		clock.debug = true;
+		
+		face = new Canvas.Palette.Group(0,0);
+		clock.drawing.add("face", face);
+		
 		// Add the 12 ticks for the hours to the clock
 		var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 		for (i=0; i<12; i++){
-			tick.origin.y = +150;			// Move the origin of the tick to the centre of the clock
+			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
+			tick.stroke.color = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
-			tick.stroke.color = "grey";
-			clock.drawing.add("tick_"+i, tick);
+			face.add("tick_"+i, tick, true);
 		}
+
+
+		hands = new Canvas.Palette.Group(0,0);
+		hands.layer = 1;
+		hands.pivot.x = 150;
+		hands.pivot.y = 150;
+		hands.xskew = 0;
+		clock.drawing.add("hands", hands);
 
 		// Create the three hand for the clock
 		var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
 		hour_hand.stroke.width = 10;
-		hour_hand.stroke.color = "grey";
+		hour_hand.stroke.color = "darkGrey";
 		hour_hand.stroke.cap = "round";
-		hour_hand.origin.y = 0;
-		clock.drawing.add("hour_hand", hour_hand);
+		hour_hand.layer = 1;
+		hands.add("hour_hand", hour_hand);
 
 		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
 		minute_hand.stroke.width = 5;
-		minute_hand.stroke.color = "darkGrey";
+		minute_hand.stroke.color = "grey";
 		minute_hand.stroke.cap = "round";
 		minute_hand.layer = 2;
-		clock.drawing.add("minute_hand", minute_hand);
+		hands.add("minute_hand", minute_hand);
 	
 		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
 		second_hand.stroke.width = 1;
 		second_hand.layer = 1;
-		clock.drawing.add("second_hand", second_hand);
-	
+		hands.add("second_hand", second_hand);
+		
+		var text = new Canvas.Palette.Text(150, 85, "Canvas API");
+		text.align="center";
+		text.fill = "lightGrey";		
+		clock.drawing.add("text_"+i, text);
+
 		// Start the animation (the default frame rate in 12 fps)
-		clock.drawing.framerate = 1;
-		clock.drawing.onBeforeDraw = clock.update;
-	},
-	
-	// This function will act as the callback for the animation
-	update : function(){
-		// Get the current time and rotate each hand accordingly
-		var time = new Date();
-		clock.drawing.scene.hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
-		clock.drawing.scene.minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
-		clock.drawing.scene.second_hand.rotation = (360/60)*time.getSeconds();
+		clock.drawing.onBeforeDraw = function(_this){
+				var time = new Date();
+				// Get the current time and rotate each hand accordingly
+				hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
+				minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
+				second_hand.rotation = (360/60)*time.getSeconds();
+		}
 	}
 }
 
