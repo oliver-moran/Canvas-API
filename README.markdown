@@ -3,6 +3,7 @@ Canvas API
 A JavaScript library for the HTML5 canvas tag.
 ----------------------------------------------
 > Copyright © 2010 Oliver Moran (<http://www.canvas-api.com>)
+>
 > Contributors: Yuichi Tateno, John Resig
 
 Canvas API is a library for developing rich web content using the HTML5 canvas tag.
@@ -32,6 +33,4 @@ Because Canvas API is standard's compliant it does not require any plug-ins to w
 
 Canvas API is licensed under the LGPL (<http://www.gnu.org/licenses/>).
  
-Notes
------
 [1]: http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html "The W3C HTML5 specification for the `canvas` tag"
