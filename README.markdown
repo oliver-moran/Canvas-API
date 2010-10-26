@@ -1,33 +1,32 @@
-Canvas API
-==============================================
-A JavaScript library for the HTML5 canvas tag.
-----------------------------------------------
+Canvas API: A JavaScript library for the HTML5 canvas tag.
+==========================================================
 > Copyright © 2010 Oliver Moran (<http://www.canvas-api.com>)
 >
-> Contributors: Yuichi Tateno, John Resig
+> Contributors: Todd Eichel, John Resig, Bill Surgent, Yuichi Tateno
 
-Canvas API is a library for developing rich web content using the HTML5 canvas tag.
+Canvas API is a library for developing rich web content using JavaScript¨ (ECMAScript) and the HTML5 canvas tag.
 
 The functionality offered by the library is comparable to applications such as Adobe¨ Flash¨, including:
 
-* Images (GIF, PNG, JPEG, SVG, etc.), audio (MP3, OGG, etc.) and video support (OGG, MPEG, MOV, etc.).
+* Images (GIF, PNG, JPEG, SVG, etc.), audio (MP3, OGG, etc.) and video support (MPEG, MOV, OGG, etc.).
 * Geometric shapes (lines, rectangles, polygons, circles, BŽzier curves, arcs).
 * Text (outline and filled), including fonts imported via CSS.
 * Shadows, alpha blending, fill gradients (liner and gradient) and patterns.
 * Grouping, layering and masking of drawings, images, video and text.
-* Matrix transformation on all objects or groups of objects (translation, rotation, skew, scale).
+* Matrix transformation of all objects and groups of objects (translation, rotation, skew, scale).
 * Tweened animations with multiple effects and frame event callbacks (such as `onDraw` and `onBeforeDraw`).
-* Mouse and touch events (such as `onClick` or `onRelease`).
+* Mouse and touch events on all objects (such as `onClick` or `onRelease`).
 
-Canvas API uses only expected HTML5 standard JavaScript[1] and is supported by the latest versions of:
+Canvas API uses only expected HTML5 standard JavaScript[1] W3C¨ and is supported by the latest versions of:
 
-* Firefox
-* Safari (including iPhone)
-* Camino (excluding text rendering function)
-* Opera
-* Android
+* Firefox¨
+* Safari¨ (including iPhone¨)
+* Chrome¨
+* Opera¨
+* Camino¨ (excluding text rendering functions)
+* Android¨
 
-Canvas API is also supported by the beta version of Internet Explorer 9.
+Canvas API is also supported by the beta version of Internet Explorer¨ 9 and works on Windows¨, Mac¨, Linux¨, iPhone¨ and Android¨ as well as other PCs and mobile devices. 
 
 Because Canvas API is standard's compliant it does not require any plug-ins to work.
 

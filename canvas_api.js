@@ -1,12 +1,9 @@
 /*
  * Canvas API: A JavaScript library for the HTML5 canvas tag.
- *
+ * 
  * Copyright © 2010 Oliver Moran <oliver.moran@N0!spam@gmail.com>
- * Contributors: Yuichi Tateno, John Resig
+ * Contributors: Todd Eichel, John Resig, Bill Surgent, Yuichi Tateno
  *
- */
-
-/*
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
  */
+
 
 /**
  * Contains the source code of the Canvas API. 
@@ -116,7 +114,28 @@ var Canvas = {
 			}
 			copy.push(item);
 			return copy;
-		}
+		},
+		/**
+		 * A flag that, if set to true, displays debug information such as rendering times, average rendering time over the past 100 renders, masking objects (magenta) and hit areas (cyan).
+		 * @property {read Boolean} Canvas.debug
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		debug : false
+	
+		// Geometry functions?
+		
+		// "point in a polygon" is at bottom of file
+		
+		// rotate?
+		// var radians = layers[i-1].rotation * -Math.PI/180;
+		// var x2 = Math.cos(radians) * (x-(layers[i-1].origin().x+layers[i-1].pivot.x)) - Math.sin(radians) * (y-(layers[i-1].origin().y+layers[i-1].pivot.y)) + (layers[i-1].origin().x+layers[i-1].pivot.x);
+		// var y2 = Math.sin(radians) * (x-(layers[i-1].origin().x+layers[i-1].pivot.x)) + Math.cos(radians) * (y-(layers[i-1].origin().y+layers[i-1].pivot.y)) + (layers[i-1].origin().y+layers[i-1].pivot.y);
+
+		// scale?
+		// x2 = (layers[i-1].origin().x+layers[i-1].pivot.x) + ((x2 - (layers[i-1].origin().x+layers[i-1].pivot.x)) / (layers[i-1].xscale/100));
+		// y2 = (layers[i-1].origin().y+layers[i-1].pivot.y) + ((y2 - (layers[i-1].origin().y+layers[i-1].pivot.y)) / (layers[i-1].yscale/100));
+
 	}
 };
 
@@ -130,7 +149,8 @@ var Canvas = {
  * @since 0.2
  */
 Canvas.Drawing = function(canvas){
-	
+	var _this = this; // for methods that are outside of scope
+
 	// CANVAS TAG PROPERTIES
 	
 	/**
@@ -146,7 +166,7 @@ Canvas.Drawing = function(canvas){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.context = canvas.getContext('2d');
+	this.context = canvas.getContext("2d");
 	/**
 	 * A reference to the JavaScript object that controls the drawing.
 	 * @property {read Object} Drawing.object
@@ -156,7 +176,7 @@ Canvas.Drawing = function(canvas){
 	this.object = eval(this.canvas.id);
 	
 	// MOUSE EVENTS
-	
+		
 	/**
 	 * The x coordinate of the position in pixels relative to the Drawing.
 	 * @property {read Number} Drawing.mousex
@@ -179,6 +199,19 @@ Canvas.Drawing = function(canvas){
 	};
 	this.context.canvas.onmousedown = function(){
 		// mouse down events
+	};
+	this.context.canvas.onclick = function(e){
+		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		
+		var layers = _this.sceneByLayer();
+		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
+			layers[i-1].draw([this], _this.context, true); // trance each of the objects
+			if (_this.context.isPointInPath(x, y)) {
+				alert("HIT!");
+				return;
+			}
+		}
 	};
 	this.context.canvas.onmousemove = function(){
 		// move over events
@@ -367,9 +400,9 @@ Canvas.Drawing = function(canvas){
 		
 		var draw_end_time = new Date();
 		
-		if (this.object.debug === true){
+		if (Canvas.debug === true){
 			this.debug.addRenderTime(draw_end_time.getTime()-draw_start_time.getTime());
-			this.debug.show(this);
+			this.debug.show();
 		}
 		
 		this.onDraw();
@@ -388,14 +421,14 @@ Canvas.Drawing = function(canvas){
 		for (var time in this.renderTimes) total += this.renderTimes[time];
 		return (total/this.renderTimes.length).toFixed(2);
 	};
-	this.debug.show = function(_this){
+	this.debug.show = function(){
 		var debug_rect = new Canvas.Palette.Rectangle(0, _this.canvas.height-15, _this.canvas.width, 15);
 		debug_rect.stroke.color = "transparent";
 		debug_rect.fill = "lightGrey";
 		debug_rect.alpha = 75;
 		debug_rect.draw([this], _this.context);
 		
-		var debug_text = new Canvas.Palette.Text(3, _this.canvas.height-14, "Render time: " + _this.debug.renderTimes[_this.debug.renderTimes.length-1] + "ms (avg.: "+_this.debug.calculateAverageRenderTime()+"ms)");
+		var debug_text = new Canvas.Palette.Text(3, _this.canvas.height-15, "Render time: " + _this.debug.renderTimes[_this.debug.renderTimes.length-1] + "ms (avg.: "+_this.debug.calculateAverageRenderTime()+"ms)");
 		debug_text.font = "10px 'Courier', monospace";
 		if (_this.debug.renderTimes[_this.debug.renderTimes.length-1] > 1000/_this.framerate) debug_text.fill = "red";
 		debug_text.draw([this], _this.context);
@@ -586,7 +619,7 @@ Canvas.Palette.Object = function(){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.close = false;
+	this.close = true;
 	/**
 	 * The rotation of the Palette object in degrees around its origin.
 	 * @property {read write Number} Palette.Object.rotation
@@ -788,7 +821,7 @@ Canvas.Palette.Object = function(){
 	// COMMON METHODS
 	
 	/* A private function that sets the style just before the object is drawn. */
-	this.setStyle = function(context){
+	this.setStyle = function(senders, context){
 		/*
 		if (this.alpha < 0 || this.alpha > 100 || isNaN(this.alpha) || Math.round(this.alpha) == Infinity) {
 			this.alpha = Canvas.Palette.Object.alpha;
@@ -811,6 +844,11 @@ Canvas.Palette.Object = function(){
 		} else {
 			context.fillStyle = this.fill;
 		}
+		
+		context.globalAlpha = this.alpha * (1/100);
+		for (var sender in senders)
+			if (senders[sender].alpha) 
+				context.globalAlpha *= senders[sender].alpha * (1/100);
 		
 		if (this instanceof Canvas.Palette.Text){
 			context.font = this.font;
@@ -851,6 +889,7 @@ Canvas.Palette.Object = function(){
 			else if (obj instanceof Canvas.Palette.Radial) obj2 = new Canvas.Palette.Radial();
 			else if (obj instanceof Canvas.Palette.Pattern) obj2 = new Canvas.Palette.Pattern();
 			else if (obj instanceof Canvas.Palette.Mask) obj2 = new Canvas.Palette.Mask();
+			else if (obj instanceof Canvas.Palette.HitArea) obj2 = new Canvas.Palette.HitArea();
 			else if (obj && obj.constructor == Object) obj2 = new Object();
 			else return obj; // all other types we return as references
 		}
@@ -862,25 +901,21 @@ Canvas.Palette.Object = function(){
 		return obj2;
 	};
 	
-
-
-
 	this.isMaskingObject = function(senders){
 		for (var i=0; i<senders.length; i++)
 			if (senders[i] instanceof Canvas.Palette.Mask) return true;
 		return false;
 	};
 	
-	this.beforeDrawObject = function(x, y, senders, context){
+	this.beforeDrawObject = function(x, y, senders, context, trace){
 		if (!this.isMaskingObject(senders)) {
 			if (this.mask instanceof Canvas.Palette.Mask) {
 				context.save();
 				context.translate(x, y);
-				this.mask.draw(Canvas.Utils.pushArray(senders, this), context);
+				this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
 				context.translate(-x, -y);
 			}
-			this.setStyle(context); // restore the style parameters
-			context.globalAlpha *= (this.alpha/100); // handled slightly differently so as to allow for multiplication
+			this.setStyle(senders, context); // restore the style parameters
 		}
 	
 		// translate
@@ -891,15 +926,18 @@ Canvas.Palette.Object = function(){
 		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
 	};
 	
-	this.afterDrawObject = function(x, y, senders, context){
+	this.afterDrawObject = function(x, y, senders, context, trace){
+		if (this.hitArea instanceof Canvas.Palette.HitArea && (trace || Canvas.debug === true)){
+			this.hitArea.draw(Canvas.Utils.pushArray(senders, this), context, trace);
+		}
+
 		// reverse the transformations in series
-		context.transform(this.xscale/100, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), this.yscale/100, 0, 0);
+		context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
 		context.rotate(this.rotation * -Math.PI/180);
 		context.translate(x, y);
 
 		if (!this.isMaskingObject(senders)) {
 			if (this.mask instanceof Canvas.Palette.Mask) context.restore();
-			context.globalAlpha /= (this.alpha/100); // undo the multiplication
 		}
 	};
 };
@@ -915,7 +953,7 @@ Canvas.Palette.Object = function(){
  * @author Oliver Moran
  * @since 0.2
  */
-Canvas.Palette.Line = function (x1, y1, x2, y2){
+Canvas.Palette.Line = function (x1, y1, x2, y2, trace){
 	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
 	
 	if ((x1 && y1 && x2 && y2) != undefined){
@@ -925,15 +963,33 @@ Canvas.Palette.Line = function (x1, y1, x2, y2){
 		this.y2 = y2;
 		
 		// The private draw function
-		this.draw = function(senders, context){
-			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, senders, context);
-				
-			if (!this.isMaskingObject(senders)) context.beginPath();
-			context.moveTo(-this.pivot.x, -this.pivot.y);
-			context.lineTo((this.x2-this.x1)-this.pivot.x, (this.y2-this.y1)-this.pivot.y);
-			if (!this.isMaskingObject(senders)) context.stroke();
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, senders, context, trace);
+			
+			if (trace && (this.stroke.width > 3) ) {
+				var radians = Math.abs(Math.atan2(this.x2-this.x1, this.y2-this.y1));
+				var x1 = (this.stroke.width/2) * Math.cos(radians* 180/Math.PI);
+				var y1 = (this.stroke.width/2) * Math.sin(radians* 180/Math.PI);
 
-			this.afterDrawObject(-(this.x1+this.pivot.x), -(this.y1+this.pivot.y), senders, context);
+				context.strokeStyle = "transparent";
+				context.beginPath();
+				context.moveTo((0-this.pivot.x)-x1, (0-this.pivot.y)-y1);
+				context.lineTo(((this.x2-this.x1)-this.pivot.x)-x1, ((this.y2-this.y1)-this.pivot.y)+y1);
+				context.lineTo(((this.x2-this.x1)-this.pivot.x)+x1, ((this.y2-this.y1)-this.pivot.y)+y1);
+				context.lineTo((0-this.pivot.x)+x1, (0-this.pivot.y)-y1);
+				context.closePath();
+			} else {
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
+				context.moveTo(-this.pivot.x, -this.pivot.y);
+				context.lineTo((this.x2-this.x1)-this.pivot.x, (this.y2-this.y1)-this.pivot.y);
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
+			
+			this.afterDrawObject(-(this.x1+this.pivot.x), -(this.y1+this.pivot.y), senders, context, trace);
+		};
+		
+		this.origin = function(){
+			return {x:this.x1, y:this.y1};
 		};
 	}
 };
@@ -944,7 +1000,7 @@ Canvas.Palette.Line = function (x1, y1, x2, y2){
  * @constructor {public} Palette.Polygon
  * @param {optional Number} x The x coordinate of the first point in the Line in pixels.
  * @param {optional Number} y The y coordinate of the first point in the Line in pixels.
- * @param {optional Number} ... Any number of pairs or x, y coordinates
+ * @param {optional Number} ... Any number of pairs of x, y coordinates
  * @author Oliver Moran
  * @since 0.2
  */
@@ -963,21 +1019,29 @@ Canvas.Palette.Polygon = function (){
 			this.addPoint(arguments[i], arguments[i+1]);
 		}
 		
-		this.draw = function(senders, context){
+		this.draw = function(senders, context, trace){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 			
-			this.beforeDrawObject(this.points[0].x+this.pivot.x, this.points[0].y+this.pivot.y, senders, context);
-			
-			if (!this.isMaskingObject(senders)) context.beginPath();
+			this.beforeDrawObject(this.points[0].x+this.pivot.x, this.points[0].y+this.pivot.y, senders, context, trace);
+
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
 			context.moveTo(-this.pivot.x, -this.pivot.y);
 			for (var i=1; i<this.points.length; i++)
 				context.lineTo((this.points[i].x-this.points[0].x)-this.pivot.x, (this.points[i].y-this.points[0].y)-this.pivot.y);
-			if (this.close == true) context.closePath();
-			context.fill();
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!this.isMaskingObject(senders)) context.stroke();
+			if (trace){
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
 
-			this.afterDrawObject(-(this.points[0].x+this.pivot.x), -(this.points[0].y+this.pivot.y), senders, context);
+			this.afterDrawObject(-(this.points[0].x+this.pivot.x), -(this.points[0].y+this.pivot.y), senders, context, trace);
+		};
+		
+		this.origin = function(){
+			return {x:this.points[0].x, y:this.points[0].y};
 		};
 	}
 };
@@ -1002,22 +1066,31 @@ Canvas.Palette.Rectangle = function(x, y, width, height){
 		this.width = width;
 		this.height = height;
 		
-		this.draw = function(senders, context){
+		this.draw = function(senders, context, trace){
 			var w2 = this.width/2;
 			var h2 = this.height/2;
 			var o_x = this.x + w2 + this.pivot.x;
 			var o_y = this.y + h2 + this.pivot.y;
 
-			this.beforeDrawObject(o_x, o_y, senders, context);
+			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 
-			
-			if (!this.isMaskingObject(senders)) context.beginPath();
-			context.fillRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			context.strokeRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
-			if (!this.isMaskingObject(senders)) context.stroke();
+			if (trace){
+				context.strokeStyle = "transparent";
+				context.beginPath();
+				context.moveTo(-(w2+this.pivot.x), -(h2+this.pivot.y));
+				context.lineTo((w2+this.pivot.x), -(h2+this.pivot.y));
+				context.lineTo((w2+this.pivot.x), (h2+this.pivot.y));
+				context.lineTo(-(w2+this.pivot.x), (h2+this.pivot.y));
+				context.closePath();
+			} else {
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
+				context.fillRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				context.strokeRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
 
-			this.afterDrawObject(-o_x, -o_y, senders, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
 		};
 	}
 };
@@ -1040,17 +1113,25 @@ Canvas.Palette.Circle = function(x, y, radius){
 		this.y = y;
 		this.radius = radius;
 
-		this.draw = function(senders, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 			
-			if (!this.isMaskingObject(senders)) context.beginPath();
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
 			context.arc(-this.pivot.x, -this.pivot.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
-			if (this.close == true) context.closePath();
-			context.fill();
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!this.isMaskingObject(senders)) context.stroke();
+			if (trace) {
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+		};
+		
+		this.origin = function(){
+			return {x:this.x, y:this.y};
 		};
 	}
 };
@@ -1081,23 +1162,32 @@ Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
 		this.y3 = y3;
 		this.radius = radius;
 		
-		this.draw = function(senders, context){
+		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x3)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y3)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, senders, context);
+			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
-			if (!this.isMaskingObject(senders)) context.beginPath();
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.arcTo(this.x2-o_x, this.y2-o_y, this.x3-o_x, this.y3-o_y, this.radius); // Create an arc.
 			context.lineTo(this.x3-o_x, this.y3-o_y);
-			if (!this.isMaskingObject(senders)) context.stroke();
-			
-			if (this.close == true) context.closePath();
-			context.fill();
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+			if (trace) {
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
 
-			this.afterDrawObject(-o_x, -o_y, senders, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
+		};
+		
+		this.origin = function(){
+			var x = (this.x1 + this.x3)/2 + this.pivot.x;
+			var y = (this.y1 + this.y3)/2 + this.pivot.y;
+			return {x:x, y:y};
 		};
 	}
 };
@@ -1130,21 +1220,31 @@ Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
 		this.c_x2 = c_x2;
 		this.c_y2 = c_y2;
 		
-		this.draw = function(senders, context){
+		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, senders, context);
+			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
-			if (!this.isMaskingObject(senders)) context.beginPath();
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.bezierCurveTo(this.c_x1-o_x, this.c_y1-o_y, this.c_x2-o_x, this.c_y2-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
-			if (this.close == true) context.closePath();
-			context.fill();
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!this.isMaskingObject(senders)) context.stroke();
+			if (trace) {
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
 
-			this.afterDrawObject(-o_x, -o_y, senders, context);
+			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
+		};
+		
+		this.origin = function(){
+			var x = (this.x1 + this.x2)/2 + this.pivot.x;
+			var y = (this.y1 + this.y2)/2 + this.pivot.y;
+			return {x:x, y:y};
 		};
 	}
 };
@@ -1175,21 +1275,31 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 		this.c_x = c_x;
 		this.c_y = c_y;
 		
-		this.draw = function(senders, context){
+		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
 			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
 			
-			this.beforeDrawObject(o_x, o_y, senders, context);
+			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
-			if (!this.isMaskingObject(senders)) context.beginPath();
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
 			context.moveTo(this.x1-o_x, this.y1-o_y);   // Same starting point as above.
 			context.quadraticCurveTo(this.c_x-o_x, this.c_y-o_y, this.x2-o_x, this.y2-o_y); // Create an arc.
-			if (this.close == true) context.closePath();
-			context.fill();
-			if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-			if (!this.isMaskingObject(senders)) context.stroke();
-
-			this.afterDrawObject(-o_x, -o_y, senders, context);
+			if (trace){
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
+			
+			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
+		};
+		
+		this.origin = function(){
+			var x = (this.x1 + this.x2)/2 + this.pivot.x;
+			var y = (this.y1 + this.y2)/2 + this.pivot.y;
+			return {x:x, y:y};
 		};
 	}
 };
@@ -1212,17 +1322,32 @@ Canvas.Palette.Image = function(x, y, src){
 		this.y = y;
 		this.image = Canvas.Library.addImage(src);
 		
-		this.draw = function(senders, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 			
 			if (this.clip.width == undefined) 
-				this.clip.width = this.video.videoWidth - this.clip.x;
+				this.clip.width = this.image.naturalWidth - this.clip.x;
 			if (this.clip.height == undefined) 
-				this.clip.height = this.video.videoHeight - this.clip.y;
+				this.clip.height = this.image.naturalHeight - this.clip.y;
 
-			context.drawImage(this.image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+			if (trace) {
+				context.strokeStyle = "transparent";
+				context.beginPath();
+				context.moveTo(-this.pivot.x, -this.pivot.y);
+				context.lineTo(this.clip.width-this.pivot.x, 0-this.pivot.y);
+				context.lineTo(this.clip.width-this.pivot.x, this.clip.height-this.pivot.y);
+				context.lineTo(0-this.pivot.x, this.clip.height-this.pivot.y);
+				context.closePath();
+			} else {
+				context.drawImage(this.image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+		};
+		
+		
+		this.origin = function(){
+			return {x:this.x, y:this.y};
 		};
 	}
 };
@@ -1264,6 +1389,11 @@ Canvas.Palette.Audio = function(src){
 		this.draw = function(senders, context){
 			// an empty function solely to allow object this to be added to scenes
 		};
+		
+		this.origin = function(){
+			return {x:0, y:0};
+		};
+
 	}
 };
 
@@ -1305,17 +1435,31 @@ Canvas.Palette.Video = function(x, y, src){
 			return this.video.duration;
 		};
 		
-		this.draw = function(senders, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 			
 			if (this.clip.width == undefined) 
 				this.clip.width = this.video.videoWidth - this.clip.x;
 			if (this.clip.height == undefined) 
 				this.clip.height = this.video.videoHeight - this.clip.y;
 			
-			context.drawImage(this.video, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+			if (trace) {
+				context.strokeStyle = "transparent";
+				context.beginPath();
+				context.moveTo(-this.pivot.x, -this.pivot.y);
+				context.lineTo(this.clip.width-this.pivot.x, 0-this.pivot.y);
+				context.lineTo(this.clip.width-this.pivot.x, this.clip.height-this.pivot.y);
+				context.lineTo(0-this.pivot.x, this.clip.height-this.pivot.y);
+				context.closePath();
+			} else {
+				context.drawImage(this.video, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+		};
+		
+		this.origin = function(){
+			return {x:this.x, y:this.y};
 		};
 	}
 };
@@ -1338,32 +1482,56 @@ Canvas.Palette.Text = function(x, y, text){
 		this.y = y;
 		this.text = text;
 		
+		// over ride the default values
 		this.fill = this.stroke.color;
 		this.stroke.color = "transparent";
 		
-		this.draw = function(senders, context){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 
-			try{ // stroke and fill text are not supported on Camino
-				context.fillText(this.text, -this.pivot.x, -this.pivot.y);
+			if (trace) {
+				var attributes = this.font.split(" ");
+				var height;
+				for (var attribute in attributes) {
+					if (attributes[attribute].match(/^\d+px$/i)){
+						height = attributes[attribute].slice(0, -2);
+						break;
+					}
+				}
+
+				context.strokeStyle = "transparent";
+				context.beginPath();
+				context.moveTo(-this.pivot.x, -this.pivot.y);
+				context.lineTo(this.width()-this.pivot.x, 0-this.pivot.y);
+				context.lineTo(this.width()-this.pivot.x, height-this.pivot.y);
+				context.lineTo(0-this.pivot.x, height-this.pivot.y);
+				context.closePath();
+			} else {
+				// stroke and fill text are not supported on Camino
+				if (context.fillText) context.fillText(this.text, -this.pivot.x, -this.pivot.y);
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-				context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
-			} catch(err){}
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
+				if (context.strokeText) context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
+			}
+			
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
 		};
 		
+		this.origin = function(){
+			return {x:this.x, y:this.y};
+		};
 		
 		/**
-		 * Returns the width of the text in CSS pixels.
+		 * Returns the width of the text object in CSS pixels.
 		 * @function {public Number} Palette.Text.width
-		 * @return The width of the text in CSS pixels.
+		 * @return The width of the text object in pixels.
 		 * @author Oliver Moran
 		 * @since 0.2
 		 */
-		// FIXME: This is broken because the context is unknown
 	 	this.width = function(){
-			this.setStyle(context);
+	 		// We will use a temporary context since we don't know what context the text is applied to, it makes no difference anyway
+	 		var context = document.createElement("canvas").getContext("2d");
 
+			this.setStyle(null, context); // we don't have senders, for now this isn't a problem 
 			context.scale(this.xscale/100, this.yscale/100);
 			var textMetrics = context.measureText(this.text);
 			context.scale(100/this.xscale, 100/this.yscale);
@@ -1376,9 +1544,9 @@ Canvas.Palette.Text = function(x, y, text){
 
 /**
  * Creates an group container that contains other palette objects (including other groups).
+ * @constructor {public} Palette.Group
  * @param {Number} x The x coordinate of the top-left corder of the group in pixels.
  * @param {Number} y The y coordinate of the top-left corder of the group in pixels.
- * @constructor {public} Palette.Group
  * @author Oliver Moran
  * @since 0.2
  */
@@ -1447,17 +1615,21 @@ Canvas.Palette.Group = function(x, y){
 	};
 	
 
-	this.draw = function(senders, context){
-		this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context);
+	this.draw = function(senders, context, trace){
+		this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 		
 		context.translate(-this.pivot.x, -this.pivot.y);
 		// loop through the Group members
 		var layers = this.membersByLayer();
 		for (var i in layers)
-			if (layers[i]) layers[i].draw(Canvas.Utils.pushArray(senders, this), context);
+			if (layers[i]) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
 		context.translate(this.pivot.x, this.pivot.y);
 		
-		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context);
+		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+	};
+	
+	this.origin = function(){
+		return {x:this.x, y:this.y};
 	};
 };
 
@@ -1535,28 +1707,94 @@ Canvas.Palette.Mask = function(x, y){
 	};
 	
 
-	this.draw = function(senders, context){
+	this.draw = function(senders, context, trace){
+// if (trace) return; // we do not trace masks
+
 		context.translate(-(this.x+this.pivot.x), -(this.y+this.pivot.y));
 		context.rotate(this.rotation * Math.PI/180);
 		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
 
 		context.strokeStyle = "transparent";
 		context.shadowColor = "transparent";
-		context.fillStyle = "transparent";
+		var alpha = context.globalAlpha;
+		if (Canvas.debug === true) {
+			context.globalAlpha = 1/3;
+			context.fillStyle = "magenta";
+		} else context.fillStyle = "transparent";
 		
-		context.beginPath();
-
+		if (Canvas.debug !== true) context.beginPath();
 		// loop through the Mask's elements
 		var layers = this.elementsByLayer();
-		for (var i in layers) if (layers[i]) 
-			if (layers[i].draw) layers[i].draw(Canvas.Utils.pushArray(senders, this), context);
-		context.clip();
+		for (var i in layers) if (layers[i]) {
+			if (layers[i].draw) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+		}
+		if (Canvas.debug !== true) context.clip();
 		
+		context.globalAlpha = alpha;
+
 		// reverse the transformations in series
-		context.transform(this.xscale/100, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), this.yscale/100, 0, 0);
+		context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
 		context.rotate(this.rotation * -Math.PI/180);
 		context.translate(this.x+this.pivot.x, this.y+this.pivot.y);
 	};
+};
+
+
+/**
+ * Creates a hit area.
+ * @constructor {public} Palette.hitArea
+ * @param {optional Number} x The x coordinate of the first point in the outline of the hit area in pixels.
+ * @param {optional Number} y The y coordinate of the first point in the outline of the hit area in pixels
+ * @param {optional Number} ... Any number of pairs of x, y coordinates
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.HitArea = function (){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+	
+	if (arguments.length%2 == 0){
+		this.points = new Array();
+		this.addPoint = function(x, y){
+			var point = new Object();
+			point.x = x;
+			point.y = y;
+			this.points.push(point);
+		};
+		for (var i=0; i<arguments.length; i+=2){
+			this.addPoint(arguments[i], arguments[i+1]);
+		}
+		
+		this.draw = function(senders, context, trace){
+			if (this.points.length < 2) return; // get out of here if we don't have enough points
+
+			context.translate(-senders[senders.length-1].pivot.x, -senders[senders.length-1].pivot.y);
+
+			context.strokeStyle = "transparent";
+			context.shadowColor = "transparent";
+			var alpha = context.globalAlpha;
+			context.globalAlpha = 1/3;
+			context.fillStyle = "cyan";
+			
+			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
+			context.moveTo(-this.pivot.x, -this.pivot.y);
+			for (var i=1; i<this.points.length; i++)
+				context.lineTo((this.points[i].x-this.points[0].x)-this.pivot.x, (this.points[i].y-this.points[0].y)-this.pivot.y);
+			if (trace){
+				context.closePath();
+			} else {
+				if (this.close == true) context.closePath();
+				context.fill();
+				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
+				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
+			}
+
+			context.globalAlpha = alpha;
+
+			context.translate(senders[senders.length-1].pivot.x, senders[senders.length-1].pivot.y);
+		};
+		
+
+	}
 };
 
 
@@ -2239,3 +2477,109 @@ Canvas.Tweener.easingFunctions.linear = Canvas.Tweener.easingFunctions.easeNone;
 Canvas.DOMReady.ready(function() {
 	Canvas.init();
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Copyright © 2010 Bill Surgent
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ */
+
+/*
+ * Copyright (c) 2010, Bill Surgent
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, 
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of Bill Surgent nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ * 
+ */
+
+/* 
+ * The following is code is based on domready:
+ * http://code.google.com/p/domready/
+ * 
+ * Adapted for use with Canvas API by Oliver Moran (2010)
+ *
+ */
+
+// Determines whether a point is inside a polygon.
+// Returns true when the point is inside the polygon otherwise false.
+// Points are objects with x and y properties and the polygon is an array of these points
+Canvas.Utils.isPointInPolygon = function(point, polygon) {
+	var ep1, ep2; // Edge points that represent one edge of the polygon
+	var crossings=0; // Number of times a ray crosses the polygons edges from the left to the test point
+    
+	// Test each edge for a crossing
+	for (var i=0, l=polygon.length; i<l; ++i)
+	{
+		//Points representing the current polygon edge to test
+		ep1 = polygon[i];
+		ep2 = polygon[(i+1) % l];
+		
+		//One endpoint must be above the test point and the other must be below for a crossing to occur
+		if ( (ep1.y >= point.y && ep2.y < point.y) || (ep1.y < point.y && ep2.y >= point.y) ) {
+			if(ep1.x < point.x && ep2.x < point.x) // Both points left is a crossing
+				++crossings;
+			else if (ep1.x < point.x || ep2.x < point.x) { // One point left requires more work
+				var x1 = ep1.x;
+				var y1 = ep1.y;
+				var x2 = ep2.x;
+				var y2 = ep2.y;
+				var y = point.y;
+				
+				// Point on the edge with the same y value as the test point
+				var x = (y-y1) * ((x2-x1)/(y2-y1)) + x1;
+				
+				// If the edge is to the left of the test point
+				if(x < point.x) ++crossings;
+            }
+        }
+    }
+    
+    // Odd number of edge crossings means the point is in the polygon
+    return crossings & 1;
+};

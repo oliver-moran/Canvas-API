@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Canvas API example</title>
+<title>Canvas API examples</title>
 
 <script language="javascript" src="canvas_api.js"></script>
 
@@ -16,16 +16,13 @@
 
 var clock = {
 	init : function(){
-		
-		clock.debug = true;
-		
 		// Add the 12 ticks for the hours to the clock
 		for (i=0; i<12; i++){
 			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
 			tick.stroke.color = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
-			clock.drawing.add("tick_"+i, tick);
+			clock.drawing.add("tick_"+i, tick, true);
 		}
 
 		// Create the three hand for the clock
@@ -52,14 +49,14 @@ var clock = {
 		text.align="center";
 		text.fill = "lightGrey";		
 		clock.drawing.add("text_"+i, text);
-
+		
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){
-				var time = new Date();
-				// Get the current time and rotate each hand accordingly
-				hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
-				minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
-				second_hand.rotation = (360/60)*time.getSeconds();
+			// Get the current time and rotate each hand accordingly
+			var time = new Date();
+			hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
+			minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
+			second_hand.rotation = (360/60)*time.getSeconds();
 		}
 	}
 }
