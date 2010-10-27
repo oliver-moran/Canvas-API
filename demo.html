@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Canvas API examples</title>
+<title>Canvas API example</title>
 
 <script language="javascript" src="canvas_api.js"></script>
 
@@ -16,13 +16,14 @@
 
 var clock = {
 	init : function(){
+		
 		// Add the 12 ticks for the hours to the clock
 		for (i=0; i<12; i++){
 			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
 			tick.stroke.color = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
-			clock.drawing.add("tick_"+i, tick, true);
+			clock.drawing.add(tick);
 		}
 
 		// Create the three hand for the clock
@@ -31,24 +32,24 @@ var clock = {
 		hour_hand.stroke.color = "darkGrey";
 		hour_hand.stroke.cap = "round";
 		hour_hand.layer = 1;
-		clock.drawing.add("hour_hand", hour_hand);
+		clock.drawing.add(hour_hand);
 
 		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
 		minute_hand.stroke.width = 5;
 		minute_hand.stroke.color = "grey";
 		minute_hand.stroke.cap = "round";
 		minute_hand.layer = 2;
-		clock.drawing.add("minute_hand", minute_hand);
+		clock.drawing.add(minute_hand);
 	
 		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
 		second_hand.stroke.width = 1;
 		second_hand.layer = 1;
-		clock.drawing.add("second_hand", second_hand);
+		clock.drawing.add(second_hand);
 		
 		var text = new Canvas.Palette.Text(150, 85, "Canvas API");
 		text.align="center";
 		text.fill = "lightGrey";		
-		clock.drawing.add("text_"+i, text);
+		clock.drawing.add(text);
 		
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){

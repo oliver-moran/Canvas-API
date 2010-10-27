@@ -204,19 +204,66 @@ Canvas.Drawing = function(canvas){
 		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
 		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
 		
-		var layers = _this.sceneByLayer();
-		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
-			layers[i-1].draw([this], _this.context, true); // trance each of the objects
-			if (_this.context.isPointInPath(x, y)) {
-				alert("HIT!");
-				return;
-			}
-		}
+		if (_this.checkForHit(x, y)) alert("HIT!");
 	};
 	this.context.canvas.onmousemove = function(){
 		// move over events
 		// mouse out events
 		// update local mouse coords
+	};
+	
+	// takes layers because it is recursive (recurses through groups)
+	this.checkForHit = function(x, y, layers){
+		// if no layers were given then use the scene
+		if (!layers) layers = _this.sceneByLayer();
+
+		// loop through the objects
+		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
+			
+			if (layers[i-1].members){ // group
+					if (_this.checkForHit(x, y, layers[i-1].membersByLayer())) {
+					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
+						var tmp_debug = Canvas.debug;
+						Canvas.debug = (Canvas.debug === true) ? false : true;
+						layers[i-1].draw([this], _this.context, true); // trance each of the objects
+						if (_this.context.isPointInPath(x, y)) {
+							Canvas.debug = tmp_debug;
+							return true;
+						}
+						Canvas.debug = tmp_debug;
+					} else {
+						return true;
+					}
+				}
+			} else {
+				layers[i-1].draw([this], _this.context, true); // trance each of the objects
+				if (_this.context.isPointInPath(x, y)) {
+					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+						// XXX: We need to take account for masks. This is a hacky way of doing it:
+						// Normally the mask is drawn first but in debug mode the mask is draw 
+						// second so that it can be seen above the object. What we do here is 
+						// flip that sequence around by toggling debug mode. If we get a hit in
+						// both modes then we got a hit on the intersection between the object
+						// and the mask. We should probably replace this with a less hacky method
+						// that does the same thing but this will work for now.
+						var tmp_debug = Canvas.debug;
+						Canvas.debug = (Canvas.debug === true) ? false : true;
+						layers[i-1].draw([this], _this.context, true); // trance each of the objects
+						if (_this.context.isPointInPath(x, y)) {
+							Canvas.debug = tmp_debug;
+							return true;
+						}
+						Canvas.debug = tmp_debug;
+					} else {
+						return true;
+					}
+				}
+			}
+		}
+		
+		// no hit
+		return false;
 	};
 
 	// ANIMATION
@@ -285,15 +332,23 @@ Canvas.Drawing = function(canvas){
 	/**
 	 * Adds a Palette object to the Drawing.
 	 * @function {public void} Drawing.add
-	 * @param {String} name An instance name for the object
 	 * @param {Object} obj The object to be added
+	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to false, which adds a shallow copy of the object is added to the drawing.
 	 * @return Nothing
 	 * @see Drawing.remove
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */	
-	this.add = function(name, obj, copy){
+	this.add = function(obj, name, copy){
+		// sort out the overloading: 
+		if (name === undefined || typeof name == "boolean") {
+			if (typeof name === "boolean") copy = name;
+			var i = 0;
+			while (this.scene["sprite "+i]) i++;
+			name = "sprite "+i;
+		}
+		
 		if (copy) this.scene[name] = obj.copy();
 		else this.scene[name] = obj;
 	};
@@ -357,9 +412,9 @@ Canvas.Drawing = function(canvas){
 		for (var obj in this.scene)
 			array.push(this.scene[obj]);
 		
-		for(var i = 0; i < array.length; i++) {
-			for(var j = 0; j < (array.length-1); j++) {
-				if(array[j].layer > array[j+1].layer) {
+		for (var i = 0; i < array.length; i++) {
+			for (var j = 0; j < (array.length-1); j++) {
+				if (array[j].layer > array[j+1].layer) {
 					var tmp = array[j+1];
 					array[j+1] = array[j];
 					array[j] = tmp;
@@ -486,11 +541,27 @@ Canvas.Library.audio = new Array();
  * @since 0.2
  */
 Canvas.Library.addAudio = function(src){
-	var audio = new Audio();
+	var audio = document.createElement("audio");
+	
+	// basic settings
+	audio.setAttribute("preload", "preload");
+	audio.setAttribute("hidden", "hidden");
+	audio.setAttribute("style", "display:none;");
+	
+	// set the source
+	if (typeof src == "string") audio.setAttribute("src", src);
+	else if (typeof src == "object"){
+		for (var n in src){
+			var source = document.createElement("source");
+			source.setAttribute("src", src[n]);
+			audio.appendChild(source);
+		}
+	}
+
+	document.body.appendChild(audio);
 	// audio.onerror
 	// audio.onabort
-	audio.src = src;
-	audio.load();
+	
 	var checkIfLoaded = function(){
 		if (isNaN(audio.duration))
 			setTimeout(function(){
@@ -523,12 +594,29 @@ Canvas.Library.videos = new Array();
  */
 Canvas.Library.addVideo = function(src){
 	var video = document.createElement("video");
-	video.setAttribute("src", src);
+	
+	// basic settings
 	video.setAttribute("preload", "preload");
-	video.setAttribute("controls", "controls");
 	video.setAttribute("hidden", "hidden");
 	video.setAttribute("style", "display:none;");
+	// TODO: The poster option is taken out because it is not shown when the video is fully loaded.
+	//       Canvas API loads the video before it shows it, which means the poster is never shown.
+	//       If we take out the 'ready' check the video throws an error because the width/height are 
+	//       unknown.
+	// if (poster) video.setAttribute("poster", poster);
+	
+	// set the source
+	if (typeof src == "string") video.setAttribute("src", src);
+	else if (typeof src == "object"){
+		for (var n in src){
+			var source = document.createElement("source");
+			source.setAttribute("src", src[n]);
+			video.appendChild(source);
+		}
+	}
+
 	document.body.appendChild(video);
+	
 	// video.onerror
 	// video.onabort
 	var checkIfLoaded = function(){
@@ -808,14 +896,14 @@ Canvas.Palette.Object = function(){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.mask = {};
+	this.mask = {}; // FIXME: need a way to add a copy rather than a reference
 	/**
 	 * The hitArea object for this object. If properly defined the object will fire click events.
 	 * @property {read write Canvas.Palette.Mask} Palette.Object.mask
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.hitArea = {};
+	this.hitArea = {}; // FIXME: need a way to add a copy rather than a reference
 
 	
 	// COMMON METHODS
@@ -909,7 +997,8 @@ Canvas.Palette.Object = function(){
 	
 	this.beforeDrawObject = function(x, y, senders, context, trace){
 		if (!this.isMaskingObject(senders)) {
-			if (this.mask instanceof Canvas.Palette.Mask) {
+			if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug !== true) {
+				// must be rendered after object in debug mode so we can see it 
 				context.save();
 				context.translate(x, y);
 				this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
@@ -936,7 +1025,15 @@ Canvas.Palette.Object = function(){
 		context.rotate(this.rotation * -Math.PI/180);
 		context.translate(x, y);
 
+		// must be rendered after object in debug mode so we can see it 
 		if (!this.isMaskingObject(senders)) {
+			if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug === true) {
+				context.save();
+				context.translate(-x, -y);
+				this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
+				context.translate(x, y);
+			}
+
 			if (this.mask instanceof Canvas.Palette.Mask) context.restore();
 		}
 	};
@@ -968,7 +1065,7 @@ Canvas.Palette.Line = function (x1, y1, x2, y2, trace){
 			
 			if (trace && (this.stroke.width > 3) ) {
 				var radians = Math.abs(Math.atan2(this.x2-this.x1, this.y2-this.y1));
-				var x1 = (this.stroke.width/2) * Math.cos(radians* 180/Math.PI);
+				var x1 = (this.stroke.width) * Math.cos(radians* 180/Math.PI); // width is not divided two here to fit the stroke better
 				var y1 = (this.stroke.width/2) * Math.sin(radians* 180/Math.PI);
 
 				context.strokeStyle = "transparent";
@@ -1356,7 +1453,7 @@ Canvas.Palette.Image = function(x, y, src){
 /**
  * Creates an Audio object from a source file (.ogg, .mp3, .wav, etc.).
  * @constructor {public} Palette.Audio
- * @param {String} src A URL to the source file for the image.
+ * @param {String or Array} src A URL to the source file for the audio or an array of strings of URLs to the audio. It is recommended to provide an array of URLs to the same audio in different formats since different browsers support different audio formats.
  * @author Oliver Moran
  * @since 0.2
  */
@@ -1403,7 +1500,7 @@ Canvas.Palette.Audio = function(src){
  * @constructor {public} Palette.Video
  * @param {Number} x The x coordinate of the top-left corder of the video in pixels.
  * @param {Number} y The y coordinate of the top-left corder of the video in pixels.
- * @param {String} src A URL to the source file for the video.
+ * @param {String or Array} src A URL to the source file for the video or an array of strings of URLs to the video. It is recommended to provide an array of URLs to the same video in different formats since different browsers support different video formats.
  * @author Oliver Moran
  * @since 0.2
  */
@@ -1501,6 +1598,7 @@ Canvas.Palette.Text = function(x, y, text){
 
 				context.strokeStyle = "transparent";
 				context.beginPath();
+				// FIXME: the hit rectangle needs to be adjusted to account to baseline and text align
 				context.moveTo(-this.pivot.x, -this.pivot.y);
 				context.lineTo(this.width()-this.pivot.x, 0-this.pivot.y);
 				context.lineTo(this.width()-this.pivot.x, height-this.pivot.y);
@@ -1564,15 +1662,23 @@ Canvas.Palette.Group = function(x, y){
 	/**
 	 * Adds a Palette object to the Group.
 	 * @function {public void} Palette.Group
-	 * @param {String} name An instance name for the object
 	 * @param {Object} obj The object to be added
+	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
 	 * @return Nothing
 	 * @see Palette.Group.remove
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */	
-	this.add = function(name, obj, copy){
+	this.add = function(obj, name, copy){
+		// sort out the overloading: 
+		if (name === undefined || typeof name == "boolean") {
+			if (typeof name === "boolean") copy = name;
+			var i = 0;
+			while (this.members["sprite "+i]) i++;
+			name = "sprite "+i;
+		}
+
 		if (copy) this.members[name] = obj.copy();
 		else this.members[name] = obj;
 	};
@@ -1622,7 +1728,8 @@ Canvas.Palette.Group = function(x, y){
 		// loop through the Group members
 		var layers = this.membersByLayer();
 		for (var i in layers)
-			if (layers[i]) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+			// we skip this if we are tracing because we don't want to trace the inner objects only ths one
+			if (layers[i] && !trace) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
 		context.translate(this.pivot.x, this.pivot.y);
 		
 		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
@@ -1656,15 +1763,23 @@ Canvas.Palette.Mask = function(x, y){
 	/**
 	 * Adds a Palette object to the Group.
 	 * @function {public void} Palette.Group
-	 * @param {String} name An instance name for the object
 	 * @param {Object} obj The object to be added
+	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
 	 * @return Nothing
 	 * @see Palette.Group.remove
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
-	this.add = function(name, obj, copy){
+	 */
+	this.add = function(obj, name, copy){
+		// sort out the overloading: 
+		if (name === undefined || typeof name == "boolean") {
+			if (typeof name === "boolean") copy = name;
+			var i = 0;
+			while (this.elements["sprite "+i]) i++;
+			name = "sprite "+i;
+		}
+
 		if (copy) this.elements[name] = obj.copy();
 		else this.elements[name] = obj;
 	};
@@ -1708,8 +1823,6 @@ Canvas.Palette.Mask = function(x, y){
 	
 
 	this.draw = function(senders, context, trace){
-// if (trace) return; // we do not trace masks
-
 		context.translate(-(this.x+this.pivot.x), -(this.y+this.pivot.y));
 		context.rotate(this.rotation * Math.PI/180);
 		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
@@ -1726,7 +1839,9 @@ Canvas.Palette.Mask = function(x, y){
 		// loop through the Mask's elements
 		var layers = this.elementsByLayer();
 		for (var i in layers) if (layers[i]) {
-			if (layers[i].draw) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+			if (layers[i].draw) {
+				layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+			}
 		}
 		if (Canvas.debug !== true) context.clip();
 		
@@ -1765,6 +1880,7 @@ Canvas.Palette.HitArea = function (){
 		}
 		
 		this.draw = function(senders, context, trace){
+			// FIXME: need to draw relative to object rather
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 
 			context.translate(-senders[senders.length-1].pivot.x, -senders[senders.length-1].pivot.y);
@@ -2489,7 +2605,9 @@ Canvas.DOMReady.ready(function() {
 
 
 
-
+/*
+ * The follow is dual licenced under either the LGPL or BSD licence:
+ */
 
 /*
  * Copyright © 2010 Bill Surgent
@@ -2539,9 +2657,6 @@ Canvas.DOMReady.ready(function() {
  */
 
 /* 
- * The following is code is based on domready:
- * http://code.google.com/p/domready/
- * 
  * Adapted for use with Canvas API by Oliver Moran (2010)
  *
  */
