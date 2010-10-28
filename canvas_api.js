@@ -121,21 +121,81 @@ var Canvas = {
 		 * @author Oliver Moran
 		 * @since 0.2
 		 */
-		debug : false
+		debug : false,
+		
+		
+		/**
+		 * Determines the text direction of the canvas tags in a document.
+		 * @function {private static Boolean} Canvas.Utils.DocumentIsLeftToRight
+		 * @return true if text runs left-to-right otherwise false.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		DocumentIsLeftToRight : function() {
+			var canvas = document.createElement("canvas");
+			canvas.setAttribute("style", "margin: 0 0 0 0; padding: 0 0 0 0; text-align:default;");
+			var span = document.createElement("span");
+			var text = document.createTextNode("X");
+			span.appendChild(text);
+			canvas.appendChild(span);
+			document.body.appendChild(canvas);
+			
+			var result = (span.offsetLeft < (canvas.offsetWidth - (span.offsetLeft + span.offsetWidth)));
+			
+			document.body.removeChild(canvas); // remove it
+			
+			return result;
+		},
 	
-		// Geometry functions?
+		// GEOMETERY
 		
 		// "point in a polygon" is at bottom of file
 		
-		// rotate?
-		// var radians = layers[i-1].rotation * -Math.PI/180;
-		// var x2 = Math.cos(radians) * (x-(layers[i-1].origin().x+layers[i-1].pivot.x)) - Math.sin(radians) * (y-(layers[i-1].origin().y+layers[i-1].pivot.y)) + (layers[i-1].origin().x+layers[i-1].pivot.x);
-		// var y2 = Math.sin(radians) * (x-(layers[i-1].origin().x+layers[i-1].pivot.x)) + Math.cos(radians) * (y-(layers[i-1].origin().y+layers[i-1].pivot.y)) + (layers[i-1].origin().y+layers[i-1].pivot.y);
-
-		// scale?
-		// x2 = (layers[i-1].origin().x+layers[i-1].pivot.x) + ((x2 - (layers[i-1].origin().x+layers[i-1].pivot.x)) / (layers[i-1].xscale/100));
-		// y2 = (layers[i-1].origin().y+layers[i-1].pivot.y) + ((y2 - (layers[i-1].origin().y+layers[i-1].pivot.y)) / (layers[i-1].yscale/100));
-
+		/**
+		 * Converts an angle in radians to degrees.
+		 * @function {private static Number} Canvas.Utils.radians2degrees
+		 * @param {Number} radians The angle in radians.
+		 * @param {Object} item The item to be pushed onto the copy.
+		 * @return The angle in degrees
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		radians2degrees : function(radians){
+			return radians * 180/Math.PI;
+		},
+		/**
+		 * Converts an angle in degrees to radians.
+		 * @function {private static Number} Canvas.Utils.degrees2radians
+		 * @param {Number} degrees The angle in degrees.
+		 * @param {Object} item The item to be pushed onto the copy.
+		 * @return The angle in radians
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		degrees2radians : function(degrees){
+			return degrees * Math.PI/180;
+		},
+		/**
+		 * Rotates a point around an origin by an angle.
+		 * @function {private static Object} Canvas.Utils.rotatePoint
+		 * @param {Object} point The point to rotate.
+		 * @... {Number} x The x coordinate of the point.
+		 * @... {Number} y The y coordinate of the point.
+		 * @param {Object} origin The point to rotate.
+		 * @... {Number} x The x coordinate of the origin.
+		 * @... {Number} y The y coordinate of the origin.
+		 * @param {Number} degrees The angle to rotate the point in degrees.
+		 * @return An object composed of a x and y coordiante of the new point.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		rotatePoint : function(point, origin, degrees){
+			var radians = Utils.degrees2radians(degrees);
+			var x = Math.cos(radians) * (point.x-origin.x) - Math.sin(radians) * (point.y-origin.y) + origin.x;
+			var y = Math.sin(radians) * (point.x-origin.x) + Math.cos(radians) * (point.y-origin.y) + origin.y;
+			
+			return {x:x, y:y};
+		}
 	}
 };
 
@@ -175,6 +235,43 @@ Canvas.Drawing = function(canvas){
 	 */
 	this.object = eval(this.canvas.id);
 	
+	// KEY EVENTS
+	
+	/**
+	 * A user-definable function that is called when a keyboard button is pressed down. This is attached to the document object of the webpage.
+	 * @function {public abstract void} Drawing.onKeyDown
+	 * @param {String} key A string value for the key.
+	 * @param {Number} code A code value for the key.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.onKeyDown = function(key, code){};
+	var current_keydown = document.onkeydown;
+	document.onkeydown = function(e){
+		if (current_keydown) current_keydown();
+		if(typeof _this.onKeyDown == "function"){
+			_this.onKeyDown(String.fromCharCode(e.which), e.which);
+		}
+	};
+	/**
+	 * A user-definable function that is called when a keyboard button is pressed down. This is attached to the document object of the webpage.
+	 * @function {public abstract void} Drawing.onKeyUp
+	 * @param {String} key A string value for the key.
+	 * @param {Number} code A code value for the key.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.onKeyUp = function(key, code){};
+	var current_keyup = document.onkeyup;
+	document.onkeyup = function(e){
+		if (current_keyup) current_keyup();
+		if(typeof _this.onKeyUp == "function"){
+			_this.onKeyUp(String.fromCharCode(e.which), e.which);
+		}
+	};
+	
 	// MOUSE EVENTS
 		
 	/**
@@ -194,22 +291,44 @@ Canvas.Drawing = function(canvas){
 	 */
 	this.mousey = undefined;
 
-	this.context.canvas.onmouseup = function(){
-		// mouse up events
-	};
-	this.context.canvas.onmousedown = function(){
-		// mouse down events
-	};
-	this.context.canvas.onclick = function(e){
+	this.context.canvas.onmouseup = function(e){
 		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
 		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
 		
-		if (_this.checkForHit(x, y)) alert("HIT!");
+		var hit = _this.checkForHit(x, y);
+		if (hit && hit.onRelease) hit.onRelease({x:x, y:y}, hit);
 	};
-	this.context.canvas.onmousemove = function(){
+	this.context.canvas.onmousedown = function(e){
+		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		
+		var hit = _this.checkForHit(x, y);
+		if (hit && hit.onPress) hit.onPress({x:x, y:y}, hit);
+	};
+	this.context.canvas.onclick = function(e){
+		// click events
+	};
+	this.lastOverObject = undefined;
+	this.context.canvas.onmousemove = function(e){
 		// move over events
 		// mouse out events
 		// update local mouse coords
+		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		
+		_this.mousex = x;
+		_this.mousey = y;
+		
+		var hit = _this.checkForHit(x, y);
+		if (_this.lastOverObject && _this.lastOverObject.onMouseOut && hit != _this.lastOverObject) _this.lastOverObject.onMouseOut({x:x, y:y}, hit); 
+		if (hit) {
+			_this.canvas.style.cursor = hit.cursor;
+			if (hit.onMouseOver && hit != _this.lastOverObject) hit.onMouseOver({x:x, y:y}, hit); 
+			_this.lastOverObject = hit;
+		} else {
+			_this.canvas.style.cursor = "default";			
+			_this.lastOverObject = undefined;
+		}
 	};
 	
 	// takes layers because it is recursive (recurses through groups)
@@ -220,8 +339,8 @@ Canvas.Drawing = function(canvas){
 		// loop through the objects
 		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
 			
-			if (layers[i-1].members){ // group
-					if (_this.checkForHit(x, y, layers[i-1].membersByLayer())) {
+			if (layers[i-1] instanceof Canvas.Palette.Group){ // group
+				if (_this.checkForHit(x, y, layers[i-1].membersByLayer())) {
 					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
 						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
 						var tmp_debug = Canvas.debug;
@@ -229,16 +348,16 @@ Canvas.Drawing = function(canvas){
 						layers[i-1].draw([this], _this.context, true); // trance each of the objects
 						if (_this.context.isPointInPath(x, y)) {
 							Canvas.debug = tmp_debug;
-							return true;
+							return layers[i-1];
 						}
 						Canvas.debug = tmp_debug;
 					} else {
-						return true;
+						return layers[i-1];
 					}
 				}
 			} else {
 				layers[i-1].draw([this], _this.context, true); // trance each of the objects
-				if (_this.context.isPointInPath(x, y)) {
+				if (_this.acceptsMouseEvents(layers[i-1]) && _this.context.isPointInPath(x, y)) {
 					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
 						// XXX: We need to take account for masks. This is a hacky way of doing it:
 						// Normally the mask is drawn first but in debug mode the mask is draw 
@@ -252,11 +371,11 @@ Canvas.Drawing = function(canvas){
 						layers[i-1].draw([this], _this.context, true); // trance each of the objects
 						if (_this.context.isPointInPath(x, y)) {
 							Canvas.debug = tmp_debug;
-							return true;
+							return layers[i-1];
 						}
 						Canvas.debug = tmp_debug;
 					} else {
-						return true;
+						return layers[i-1];
 					}
 				}
 			}
@@ -264,6 +383,14 @@ Canvas.Drawing = function(canvas){
 		
 		// no hit
 		return false;
+	};
+	
+	
+	this.acceptsMouseEvents = function(obj){
+		return (typeof obj.onRelease == "function" 
+			 || typeof obj.onPress == "function" 
+			 || typeof obj.onMouseOver == "function" 
+			 || obj.onMouseOut == "function");
 	};
 
 	// ANIMATION
@@ -331,11 +458,11 @@ Canvas.Drawing = function(canvas){
 	
 	/**
 	 * Adds a Palette object to the Drawing.
-	 * @function {public void} Drawing.add
+	 * @function {public Boolean} Drawing.add
 	 * @param {Object} obj The object to be added
 	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to false, which adds a shallow copy of the object is added to the drawing.
-	 * @return Nothing
+	 * @return true if the object was added, otherwise false.
 	 * @see Drawing.remove
 	 * @author Oliver Moran
 	 * @since 0.2
@@ -349,8 +476,12 @@ Canvas.Drawing = function(canvas){
 			name = "sprite "+i;
 		}
 		
+		if (!obj || !obj.draw) return false;
+		
 		if (copy) this.scene[name] = obj.copy();
 		else this.scene[name] = obj;
+		
+		return true;
 	};
 	
 	/**
@@ -548,6 +679,7 @@ Canvas.Library.addAudio = function(src){
 	audio.setAttribute("hidden", "hidden");
 	audio.setAttribute("style", "display:none;");
 	
+	
 	// set the source
 	if (typeof src == "string") audio.setAttribute("src", src);
 	else if (typeof src == "object"){
@@ -599,7 +731,7 @@ Canvas.Library.addVideo = function(src){
 	video.setAttribute("preload", "preload");
 	video.setAttribute("hidden", "hidden");
 	video.setAttribute("style", "display:none;");
-	// TODO: The poster option is taken out because it is not shown when the video is fully loaded.
+	// XXX: The poster option is taken out because it is not shown when the video is fully loaded.
 	//       Canvas API loads the video before it shows it, which means the poster is never shown.
 	//       If we take out the 'ready' check the video throws an error because the width/height are 
 	//       unknown.
@@ -896,17 +1028,109 @@ Canvas.Palette.Object = function(){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.mask = {}; // FIXME: need a way to add a copy rather than a reference
+	this.mask = {};
 	/**
 	 * The hitArea object for this object. If properly defined the object will fire click events.
-	 * @property {read write Canvas.Palette.Mask} Palette.Object.mask
+	 * @property {private read Canvas.Palette.Mask} Palette.Object.mask
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.hitArea = {}; // FIXME: need a way to add a copy rather than a reference
+	this.hitArea = {};
+	/**
+	 * The mouse cursor to show when the mouse passes over an object (or it's hit area) if that object has a onRelease, onPress or onMouseOver function. This corresponds to the CSS cursor property so can contain a list of URLs (sperated by commaa) to custom pointers. It is recommended that if URLs are given that the final item in the list be the name of a generic custom type should none of the URLs be used. Valid generic values are auto, crosshair, default, e-resize, help, move, n-resize, ne-resize, nw-resize, pointer, progress, s-resize, se-resize, sw-resize, text, w-resize, wait and inherit. The default is pointer.
+	 * @property {write read String} Palette.Object.cursor
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.cursor = "pointer";
 
 	
 	// COMMON METHODS
+	
+	/**
+	 * Sets the hit area for a Palette object.
+	 * @function {public Boolean} Palette.Object.setHitArea
+	 * @param {Object} obj The hit area to be added
+	 * @param {optional Boolean} copy Whether to (deep) copy the hit area when settings it. Defaults to true, otherwise a shallow copy of the hit area is set for the object. 
+	 * @return true if the hit area was set, otherwise false.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.setHitArea = function(obj, copy){
+		if (!(obj instanceof Canvas.Palette.HitArea) || !obj.draw) return false;
+		
+		if (copy) this.hitArea = obj.copy();
+		else this.hitArea = obj;
+		
+		return true;
+	};
+	/**
+	 * Sets the mask for a Palette object.
+	 * @function {public Boolean} Palette.Object.setMask
+	 * @param {Object} obj The mask to be added
+	 * @param {optional Boolean} copy Whether to (deep) copy the mask when settings it. Defaults to true, otherwise a shallow copy of the mask is set for the object. 
+	 * @return true if the mask was set, otherwise false.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.setMask = function(obj, copy){
+		if (!(obj instanceof Canvas.Palette.Mask) || !obj.draw) return false;
+		
+		if (copy) this.mask = obj.copy();
+		else this.mask = obj;
+		
+		return false;
+	};
+	
+	/**
+	 * A user-definable function that is called when the mouse button is released over the object or its hit area (or when a touch is released).
+	 * @function {public abstract void} Palette.Object.onClick
+	 * @param {Object} mouse An object describing the mouse position.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @param {Object} object The object that was clicked.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	// this.onRelease = undefined;
+	/**
+	 * A user-definable function that is called when the mouse button is pressed over the object or its hit area (or when a touch is started).
+	 * @function {public abstract void} Palette.Object.onPress
+	 * @param {Object} mouse An object describing the mouse position.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @param {Object} object The object that was clicked.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	// this.onPress = undefined;
+	/**
+	 * A user-definable function that is called when the mouse pointer is moved over the object or its hit area.
+	 * @function {public abstract void} Palette.Object.onMouseOver
+	 * @param {Object} mouse An object describing the mouse position.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @param {Object} object The object that the mouse was moved in to.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	// this.onMouseOver = undefined;
+	/**
+	 * A user-definable function that is called when the mouse pointer is moved out of the object or its hit area.
+	 * @function {public abstract void} Palette.Object.onMouseOut
+	 * @param {Object} mouse An object describing the mouse position.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @... {Number} x The mouse x position of mouse relative to the canvas.
+	 * @param {Object} object The object that the mouse was moved out of.
+	 * @return Nothing.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	// this.onMouseOut = undefined;
+
 	
 	/* A private function that sets the style just before the object is drawn. */
 	this.setStyle = function(senders, context){
@@ -1063,7 +1287,7 @@ Canvas.Palette.Line = function (x1, y1, x2, y2, trace){
 		this.draw = function(senders, context, trace){
 			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, senders, context, trace);
 			
-			if (trace && (this.stroke.width > 3) ) {
+			if (trace) {
 				var radians = Math.abs(Math.atan2(this.x2-this.x1, this.y2-this.y1));
 				var x1 = (this.stroke.width) * Math.cos(radians* 180/Math.PI); // width is not divided two here to fit the stroke better
 				var y1 = (this.stroke.width/2) * Math.sin(radians* 180/Math.PI);
@@ -1458,6 +1682,8 @@ Canvas.Palette.Image = function(x, y, src){
  * @since 0.2
  */
 Canvas.Palette.Audio = function(src){
+	if (!document.createElement("audio").play) return false; // unsupported by Camino
+
 	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
 
 	if ((src) != undefined){
@@ -1505,6 +1731,8 @@ Canvas.Palette.Audio = function(src){
  * @since 0.2
  */
 Canvas.Palette.Video = function(x, y, src){
+	if (!document.createElement("video").play) return false; // unsupported by Camino
+	
 	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
 
 	if ((x && y && src) != undefined){
@@ -1598,11 +1826,41 @@ Canvas.Palette.Text = function(x, y, text){
 
 				context.strokeStyle = "transparent";
 				context.beginPath();
-				// FIXME: the hit rectangle needs to be adjusted to account to baseline and text align
-				context.moveTo(-this.pivot.x, -this.pivot.y);
-				context.lineTo(this.width()-this.pivot.x, 0-this.pivot.y);
-				context.lineTo(this.width()-this.pivot.x, height-this.pivot.y);
-				context.lineTo(0-this.pivot.x, height-this.pivot.y);
+
+				// "start", "end", "left", "right", "center"
+				var offsetx = 0;
+				var xdir = +1;
+				if (this.align == "center") offsetx = -this.width()/2;
+				else if (this.align == "right" || (this.align == "start" && !Canvas.Utils.DocumentIsLeftToRight()) || (this.align == "end" && dir == "ltr"))
+					xdir = -1;
+				// "top", "hanging", "middle", "alphabetic", "ideographic", "bottom".
+				var offsety = 0;
+				switch (this.baseline){
+					// approximations
+					case "alphabetic":
+						offsety = -height*(3/4);
+						break;
+					case "top":
+						offsety = +height*(1/8);
+						break;
+					case "hanging":
+						offsety = +height*(1/8);
+						break;
+					case "middle":
+						offsety = -height*(1/2);
+						break;
+					case "ideographic":
+						offsety = -height;
+						break;
+					case "bottom":
+						offsety = -height;
+						break;
+				}
+				
+				context.moveTo(-this.pivot.x+offsetx, -this.pivot.y+offsety);
+				context.lineTo((this.width()-this.pivot.x)*xdir+offsetx, 0-this.pivot.y+offsety);
+				context.lineTo((this.width()-this.pivot.x)*xdir+offsetx, height-this.pivot.y+offsety);
+				context.lineTo((0-this.pivot.x)*xdir+offsetx, height-this.pivot.y+offsety);
 				context.closePath();
 			} else {
 				// stroke and fill text are not supported on Camino
@@ -1636,6 +1894,33 @@ Canvas.Palette.Text = function(x, y, text){
 			
 			return textMetrics.width;
 		};
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 	}
 };
 
@@ -1661,11 +1946,11 @@ Canvas.Palette.Group = function(x, y){
 	
 	/**
 	 * Adds a Palette object to the Group.
-	 * @function {public void} Palette.Group
+	 * @function {public Boolean} Palette.Group
 	 * @param {Object} obj The object to be added
 	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
-	 * @return Nothing
+	 * @return true if the object was added, otherwise false.
 	 * @see Palette.Group.remove
 	 * @author Oliver Moran
 	 * @since 0.2
@@ -1679,8 +1964,12 @@ Canvas.Palette.Group = function(x, y){
 			name = "sprite "+i;
 		}
 
+		if (!obj || !obj.draw) return false;
+		
 		if (copy) this.members[name] = obj.copy();
 		else this.members[name] = obj;
+		
+		return false;
 	};
 	
 	/**
@@ -1762,11 +2051,11 @@ Canvas.Palette.Mask = function(x, y){
 	
 	/**
 	 * Adds a Palette object to the Group.
-	 * @function {public void} Palette.Group
+	 * @function {public Boolean} Palette.Group
 	 * @param {Object} obj The object to be added
 	 * @param {optional String} name An instance name for the object
 	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
-	 * @return Nothing
+	 * @return true if the object was added, otherwise false.
 	 * @see Palette.Group.remove
 	 * @author Oliver Moran
 	 * @since 0.2
@@ -1779,9 +2068,13 @@ Canvas.Palette.Mask = function(x, y){
 			while (this.elements["sprite "+i]) i++;
 			name = "sprite "+i;
 		}
+		
+		if (!obj || !obj.draw) return false;
 
 		if (copy) this.elements[name] = obj.copy();
 		else this.elements[name] = obj;
+		
+		return true;
 	};
 	
 	/**
@@ -1858,8 +2151,8 @@ Canvas.Palette.Mask = function(x, y){
 /**
  * Creates a hit area.
  * @constructor {public} Palette.hitArea
- * @param {optional Number} x The x coordinate of the first point in the outline of the hit area in pixels.
- * @param {optional Number} y The y coordinate of the first point in the outline of the hit area in pixels
+ * @param {optional Number} x The x coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
+ * @param {optional Number} y The y coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
  * @param {optional Number} ... Any number of pairs of x, y coordinates
  * @author Oliver Moran
  * @since 0.2
@@ -1880,7 +2173,6 @@ Canvas.Palette.HitArea = function (){
 		}
 		
 		this.draw = function(senders, context, trace){
-			// FIXME: need to draw relative to object rather
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 
 			context.translate(-senders[senders.length-1].pivot.x, -senders[senders.length-1].pivot.y);

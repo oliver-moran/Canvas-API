@@ -14,15 +14,18 @@
 
 <script language="javascript">
 
+Canvas.debug = true;
+
 var clock = {
 	init : function(){
-		
+
 		// Add the 12 ticks for the hours to the clock
 		for (i=0; i<12; i++){
 			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
 			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
 			tick.stroke.color = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
+			var hitArea = new Canvas.Palette.HitArea(0,0, 50,0, 50,50, 0,50);
 			clock.drawing.add(tick);
 		}
 
@@ -47,8 +50,8 @@ var clock = {
 		clock.drawing.add(second_hand);
 		
 		var text = new Canvas.Palette.Text(150, 85, "Canvas API");
-		text.align="center";
-		text.fill = "lightGrey";		
+		text.align = "center";
+		text.fill = "lightGrey";
 		clock.drawing.add(text);
 		
 		// Start the animation (the default frame rate in 12 fps)
@@ -61,7 +64,7 @@ var clock = {
 		}
 	}
 }
-
+ 
 </script>
 
 </body>
