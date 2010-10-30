@@ -41,49 +41,6 @@
  * @since 0.2
  */
 var Canvas = {
-	/**
-	 * Drawing objects available for drawing.
-	 * @object {static} Canvas.drawings
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	Drawings: new Object(),
-	/**
-	 * Called when the DOM is ready. Creates new Drawing objects for each canvas tag and calls the init function in an object of the same name as the tag's ID.
-	 * @function {public static void} Canvas.init
-	 * @return Nothing
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	init: function(){
-		if (!document.getElementsByTagName) return false; // not HTML 5
-		
-		// set defaults if they have not been overwritten yet
-		if (this.imageEffectsLibrary == null && typeof Pixastic == "object" && typeof Pixastic.process == "function") {
-			this.imageEffectsLibrary = Pixastic.process; // default fx library (added on DOM load because it might not be ready before now)
-		}
-		
-		// get the array of canvas tags
-		var canvasElements = document.getElementsByTagName('canvas');
-		
-		// loop through the canvas tags
-		for (var i=0; i<canvasElements.length; i++)
-			// if it has an ID and an object with the same name as that ID exists...
-			if (canvasElements[i] != undefined && typeof eval(canvasElements[i].id).init == "function"){
-				if (!canvasElements[i].getContext) return false; // does not support the canvas tag
-				// create a new drawing with that name
-				Canvas.Drawings[canvasElements[i].id] = new Canvas.Drawing(canvasElements[i]);
-				// create a reference to that drawing in the object of the same name
-				eval(canvasElements[i].id).drawing = Canvas.Drawings[canvasElements[i].id];
-				// call the init function in that drawing
-				eval(canvasElements[i].id).init();
-				// draw it (there may be a delay between now and the start of animation)
-				eval(canvasElements[i].id).drawing.draw();
-				// auto start the animation
-				eval(canvasElements[i].id).drawing.start();
-			}
-	},
-	
 	Utils : {
 		/**
 		 * Bequeaths the attributes of ancestor onto descendent.
@@ -127,69 +84,198 @@ var Canvas = {
 		 * @since 0.2
 		 */
 		debug : false,
+		
 		/**
-		 * A reference to an image effects library for images. Defaults to Pixastic.process.
-		 * @function {public abstract Object} Canvas.Utils.imageEffectsLibrary
-		 * @param {Object} image The image to add an effect to.
-		 * @param {String} effect The effect to add.
-		 * @param {optional Object} args An object containing arguments used in applying the effect.
-		 * @return A new image with the effect applied.
+		 * If an effects library is included on the web page, Canvas API can add effects to images using that library. The Pixastic library is supported by default if it is included.
+		 * @function {abstract public Image} Canvas.Drawing.defaultImageEffectsLibrary
+		 * @param {String} name The name of the effect to add.
+		 * @param {Object} args An objet containing the arguments to be passed to the effects library.
+		 * @return A new processed image.
 		 * @author Oliver Moran
 		 * @since 0.2
 		 */
-		imageEffectsLibrary : null,
+		defaultImageEffectsLibrary : (typeof Pixastic == "object" && typeof Pixastic.process == "function") ?
+			Pixastic.process // Default FX library, if present. Can be over-ridden.
+			: null,
 		
-		
+		// GEOMETERY FUNCTIONS
 
-	
-		// GEOMETERY
-		
-		// "point in a polygon" is at bottom of file
-		
-		/**
-		 * Converts an angle in radians to degrees.
-		 * @function {private static Number} Canvas.Utils.radians2degrees
-		 * @param {Number} radians The angle in radians.
-		 * @param {Object} item The item to be pushed onto the copy.
-		 * @return The angle in degrees
-		 * @author Oliver Moran
-		 * @since 0.2
-		 */
-		radians2degrees : function(radians){
-			return radians * 180/Math.PI;
-		},
-		/**
-		 * Converts an angle in degrees to radians.
-		 * @function {private static Number} Canvas.Utils.degrees2radians
-		 * @param {Number} degrees The angle in degrees.
-		 * @param {Object} item The item to be pushed onto the copy.
-		 * @return The angle in radians
-		 * @author Oliver Moran
-		 * @since 0.2
-		 */
-		degrees2radians : function(degrees){
-			return degrees * Math.PI/180;
-		},
-		/**
-		 * Rotates a point around an origin by an angle.
-		 * @function {private static Object} Canvas.Utils.rotatePoint
-		 * @param {Object} point The point to rotate.
-		 * @... {Number} x The x coordinate of the point.
-		 * @... {Number} y The y coordinate of the point.
-		 * @param {Object} origin The point to rotate.
-		 * @... {Number} x The x coordinate of the origin.
-		 * @... {Number} y The y coordinate of the origin.
-		 * @param {Number} degrees The angle to rotate the point in degrees.
-		 * @return An object composed of a x and y coordiante of the new point.
-		 * @author Oliver Moran
-		 * @since 0.2
-		 */
-		rotatePoint : function(point, origin, degrees){
-			var radians = Utils.degrees2radians(degrees);
-			var x = Math.cos(radians) * (point.x-origin.x) - Math.sin(radians) * (point.y-origin.y) + origin.x;
-			var y = Math.sin(radians) * (point.x-origin.x) + Math.cos(radians) * (point.y-origin.y) + origin.y;
+		Geometry : {
+			// "point in a polygon" is at bottom of file
 			
-			return {x:x, y:y};
+			/**
+			 * Converts an angle in radians to degrees.
+			 * @function {private static Number} Canvas.Utils.radians2degrees
+			 * @param {Number} radians The angle in radians.
+			 * @param {Object} item The item to be pushed onto the copy.
+			 * @return The angle in degrees
+			 * @author Oliver Moran
+			 * @since 0.2
+			 */
+			radians2degrees : function(radians){
+				return radians * 180/Math.PI;
+			},
+			/**
+			 * Converts an angle in degrees to radians.
+			 * @function {private static Number} Canvas.Utils.degrees2radians
+			 * @param {Number} degrees The angle in degrees.
+			 * @param {Object} item The item to be pushed onto the copy.
+			 * @return The angle in radians
+			 * @author Oliver Moran
+			 * @since 0.2
+			 */
+			degrees2radians : function(degrees){
+				return degrees * Math.PI/180;
+			},
+			/**
+			 * Rotates a point around an origin by an angle.
+			 * @function {public static Object} Canvas.Utils.rotatePoint
+			 * @param {Object} point The point to rotate.
+			 * @... {Number} x The x coordinate of the point.
+			 * @... {Number} y The y coordinate of the point.
+			 * @param {Object} origin The point to rotate.
+			 * @... {Number} x The x coordinate of the origin.
+			 * @... {Number} y The y coordinate of the origin.
+			 * @param {Number} degrees The angle to rotate the point in degrees.
+			 * @return An object composed of a x and y coordiante of the new point.
+			 * @author Oliver Moran
+			 * @since 0.2
+			 */
+			rotatePoint : function(point, origin, degrees){
+				var radians = Utils.degrees2radians(degrees);
+				var x = Math.cos(radians) * (point.x-origin.x) - Math.sin(radians) * (point.y-origin.y) + origin.x;
+				var y = Math.sin(radians) * (point.x-origin.x) + Math.cos(radians) * (point.y-origin.y) + origin.y;
+				
+				return {x:x, y:y};
+			},
+			
+			/**
+			 * Rotates a point around an origin by an angle.
+			 * @function {public static Number} Canvas.Utils.angleBetweenThreePoints
+			 * @param {Object} a The first point.
+			 * @... {Number} x The x coordinate of the point.
+			 * @... {Number} y The y coordinate of the point.
+			 * @param {Object} b The second point.
+			 * @... {Number} x The x coordinate of the point.
+			 * @... {Number} y The y coordinate of the point.
+			 * @param {optinoal Object} c The third point.
+			 * @... {Number} x The x coordinate of the point.
+			 * @... {Number} y The y coordinate of the point.
+			 * @return The angle in degrees formed by abc. If c is missing then the angle is calculated as between aob, where o is (0,0).
+			 * @author Oliver Moran
+			 * @since 0.2
+			 */
+			angleBetweenThreePoints : function(a, b, c){
+				// XXX: Does not tell if it is clockwise or anti-clockwise
+				if (c == undefined) {
+					c = {x:b.x, y:b.y};
+					b = {x:0, y:0};
+				}
+				
+				var l_ab = Math.sqrt(Math.pow((b.x-a.x),2) + Math.pow((b.y-a.y),2));
+				var l_bc = Math.sqrt(Math.pow((b.x-c.x),2) + Math.pow((b.y-c.y),2));
+				var l_ac = Math.sqrt(Math.pow((a.x-c.x),2) + Math.pow((a.y-c.y),2));
+
+				var radians = Math.acos((Math.pow(l_ac,2) - Math.pow(l_ab,2) - Math.pow(l_bc,2))/(-2*l_ab*l_bc));
+				
+				return Canvas.Utils.Geometry.radians2degrees(radians);
+			},
+			
+			/*
+			 * The follow is dual licenced under either the LGPL or BSD licence:
+			 */
+
+			/*
+			 * Copyright © 2010 Bill Surgent
+			 *
+			 * This program is free software: you can redistribute it and/or modify
+			 * it under the terms of the GNU Lesser General Public License as published by
+			 * the Free Software Foundation, either version 3 of the License, or
+			 * (at your option) any later version.
+			 * 
+			 * This program is distributed in the hope that it will be useful,
+			 * but WITHOUT ANY WARRANTY; without even the implied warranty of
+			 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+			 * GNU Lesser General Public License for more details.
+			 * 
+			 * You should have received a copy of the GNU Lesser General Public License
+			 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+			 * 
+			 */
+
+			/*
+			 * Copyright (c) 2010, Bill Surgent
+			 * All rights reserved.
+			 * 
+			 * Redistribution and use in source and binary forms, with or without 
+			 * modification, are permitted provided that the following conditions are met:
+			 * 1. Redistributions of source code must retain the above copyright notice, 
+			 *    this list of conditions and the following disclaimer.
+			 * 2. Redistributions in binary form must reproduce the above copyright notice,
+			 *    this list of conditions and the following disclaimer in the documentation
+			 *    and/or other materials provided with the distribution.
+			 * 3. Neither the name of Bill Surgent nor the names of its contributors
+			 *    may be used to endorse or promote products derived from this software
+			 *    without specific prior written permission.
+			 * 
+			 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+			 * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+			 * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+			 * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+			 * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+			 * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+			 * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+			 * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+			 * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+			 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+			 * POSSIBILITY OF SUCH DAMAGE.
+			 * 
+			 */
+
+			/* 
+			 * Adapted for use with Canvas API by Oliver Moran (2010)
+			 *
+			 */
+
+			// Determines whether a point is inside a polygon.
+			// Returns true when the point is inside the polygon otherwise false.
+			// Points are objects with x and y properties and the polygon is an array of these points
+			isPointInPolygon : function(point, polygon) {
+				var ep1, ep2; // Edge points that represent one edge of the polygon
+				var crossings=0; // Number of times a ray crosses the polygons edges from the left to the test point
+			    
+				// Test each edge for a crossing
+				for (var i=0, l=polygon.length; i<l; ++i)
+				{
+					//Points representing the current polygon edge to test
+					ep1 = polygon[i];
+					ep2 = polygon[(i+1) % l];
+					
+					//One endpoint must be above the test point and the other must be below for a crossing to occur
+					if ( (ep1.y >= point.y && ep2.y < point.y) || (ep1.y < point.y && ep2.y >= point.y) ) {
+						if(ep1.x < point.x && ep2.x < point.x) // Both points left is a crossing
+							++crossings;
+						else if (ep1.x < point.x || ep2.x < point.x) { // One point left requires more work
+							var x1 = ep1.x;
+							var y1 = ep1.y;
+							var x2 = ep2.x;
+							var y2 = ep2.y;
+							var y = point.y;
+							
+							// Point on the edge with the same y value as the test point
+							var x = (y-y1) * ((x2-x1)/(y2-y1)) + x1;
+							
+							// If the edge is to the left of the test point
+							if(x < point.x) ++crossings;
+			            }
+			        }
+			    }
+			    
+			    // Odd number of edge crossings means the point is in the polygon
+			    return crossings & 1;
+			}
+			
+			// End of (c) Bill Surgent
 		}
 	}
 };
@@ -206,11 +292,12 @@ var Canvas = {
 Canvas.Drawing = function(canvas){
 	/**
 	 * A self reference for use in private functions.
-	 * @property {private Object} Drawing._this
+	 * @property {private Object} Drawing.__this
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	var _this = this; // for methods that are outside of scope
+	var __this = this; // for methods that are outside of scope
+
 
 	// CANVAS TAG PROPERTIES
 	
@@ -228,13 +315,235 @@ Canvas.Drawing = function(canvas){
 	 * @since 0.2
 	 */
 	this.context = canvas.getContext("2d");
+	
+	
+	// ANIMATION
+	
 	/**
-	 * A reference to the JavaScript object that controls the drawing.
-	 * @property {read Object} Drawing.object
+	 * The frame rate in fames per second of animations.
+	 * @property {read write Number} Drawing.framerate
+	 * @see Drawing.start
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.object = eval(this.canvas.id); // XXX: is this used?
+	this.framerate = 12;
+	/**
+	 * A function called immediately before the drawing is drawn.
+	 * @function {public void} Drawing.onBeforeDraw
+	 * @param {Object} drawing A reference to the Canvas.drawing object because this is lost though the onTimeOut function
+	 * @see Drawing.onDraw
+	 * @return Nothing
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.onBeforeDraw = function(drawing){};
+	/**
+	 * A function called immediately after the drawing is drawn.
+	 * @function {public void} Drawing.onDraw
+	 * @param {Object} drawing A reference to the Canvas.drawing object because this is lost though the onTimeOut function
+	 * @return Nothing
+	 * @see Drawing.onBeforeDraw
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.onDraw = function(drawing){};
+	/**
+	 * Starts animation (calls draw at regular intervals). Called by default when intialising a drawing object.
+	 * @function {public static void} Drawing.start
+	 * @return Nothing
+	 * @see Drawing.framerate
+	 * @see Drawing.stop
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	var interval;
+	var skipFrame = false; // basic frame skipping
+	this.start = function(){
+		this.stop();
+		interval = setInterval(function(){
+				if (!skipFrame) __this.draw();
+			}, 1000/this.framerate);
+	};
+	/**
+	 * Stops animation.
+	 * @function {public void} Drawing.stop
+	 * @return Nothing
+	 * @see Drawing.start
+	 * @return Nothing
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.stop = function(){
+		clearInterval(interval);
+	};
+	
+
+	// MANAGE THE SCENE
+	
+	this.scene = {}; // an object that holds the "scene"
+	
+	/**
+	 * Adds a Palette object to the Drawing.
+	 * @function {public Boolean} Drawing.add
+	 * @param {Object} obj The object to be added
+	 * @param {optional String} name An instance name for the object
+	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to false, which adds a shallow copy of the object is added to the drawing.
+	 * @return true if the object was added, otherwise false.
+	 * @see Drawing.remove
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.add = function(obj, name, copy){
+		// sort out the overloading: 
+		if (name === undefined || typeof name == "boolean") {
+			if (typeof name === "boolean") copy = name;
+			var i = 0;
+			while (this.scene["sprite "+i]) i++;
+			name = "sprite "+i;
+		}
+		
+		if (!obj || !obj.draw) return false;
+		
+		if (copy) this.scene[name] = obj.copy();
+		else this.scene[name] = obj;
+		
+		return true;
+	};
+	
+	/**
+	 * Removes a Palette object from the Drawing.
+	 * @function {public void} Drawing.remove
+	 * @return Nothing
+	 * @see Drawing.add
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.remove = function(name){
+		delete this.scene[name];
+	};
+	
+	/**
+	 * Determines if the drawing is ready to be rendered (i.e. if the necessary images, etc. have been downloaded)
+	 * @function {public Boolean} Drawing.ready
+	 * @return true if the drawing is ready to be rendered otherwise false.
+	 * @see Drawing.remove
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.ready = function(){
+		var c = 0;
+		for (var obj in this.scene){
+			for (var prop in this.scene[obj]){
+				try {
+					// Opera throws exceptions around instanceof, we we dance around it
+					if (this.scene[obj].audio != undefined && !this.scene[obj].audio.complete)
+						c++; // audio
+					else if (this.scene[obj].video != undefined && !this.scene[obj].video.complete)
+						c++; // audio
+					else if (this.scene[obj].image != undefined && !this.scene[obj].image.complete)
+						c++; // images
+					else if (this.scene[obj][prop].image && !this.scene[obj][prop].image.complete)
+						c++; // fills
+				} catch(err){
+					// An exception may be throw owing to properties appearing and disappearing asynchronously.
+					// If an exception is thrown, it can normally be safely be ignored but causes the method to reurn false.
+					c++;
+				}
+			}
+		}
+		
+		return (c == 0);
+	};
+	
+	
+	/**
+	 * A method to bubble sort the objects in the scene by layer.
+	 * @function {private static void} Canvas.sceneByLayer
+	 * @param {Array} array The object to bequeath attributes to.
+	 * @return An array containing the objects in the scene.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	var sceneByLayer = function() {
+		var array = new Array();
+		for (var obj in __this.scene)
+			array.push(__this.scene[obj]);
+		
+		for (var i = 0; i < array.length; i++) {
+			for (var j = 0; j < (array.length-1); j++) {
+				if (array[j].layer > array[j+1].layer) {
+					var tmp = array[j+1];
+					array[j+1] = array[j];
+					array[j] = tmp;
+				}
+			}
+		}
+		return array;
+	};
+	
+	/**
+	 * Paints the Drawing. If the drawing is not ready to be painted, the method will retry at a rate of once every 1 miliseconds.
+	 * @function {public void} Drawing.draw
+	 * @return Nothing
+	 * @see Drawing.animation.start
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.draw = function(){
+		if (!this.ready()){
+			skipFrame = true;
+			// if images are not loaded then set a timeout that continually checks that they have
+			setTimeout(function(){
+					__this.draw();
+				}, 1);
+			return;
+		}
+		skipFrame = false;
+		
+		this.onBeforeDraw();
+
+		var draw_start_time = new Date();
+		
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		var layers = sceneByLayer();
+		for (var i in layers) if (layers[i]) layers[i].draw([this], this.context);
+		
+		var draw_end_time = new Date();
+		
+		if (Canvas.debug === true){
+			debug.addRenderTime(draw_end_time.getTime()-draw_start_time.getTime());
+			debug.show();
+		}
+		
+		this.onDraw();
+	};
+	
+	// DEBUG
+	
+	var debug = {
+		renderTimes : new Array(),
+		addRenderTime : function(time){
+			this.renderTimes.push(time);
+			if (this.renderTimes.length > 100) this.renderTimes.shift();
+		},
+		calculateAverageRenderTime : function(){
+			var total = 0;
+			for (var time in this.renderTimes) total += this.renderTimes[time];
+			return (total/this.renderTimes.length).toFixed(2);
+		},
+		show : function(){
+			__this.context.fillStyle = "lightGrey";
+			__this.context.globalAlpha = 0.75;
+			__this.context.fillRect(0, __this.canvas.height-15, __this.canvas.width, 15);
+			
+			__this.context.font = "10px 'Courier', monospace";
+			__this.context.textAlign = "start";
+			__this.context.textBaseline = "top";
+			if (this.renderTimes[this.renderTimes.length-1] > 1000/__this.framerate) __this.context.fillStyle = "red";
+			else __this.context.fillStyle = "black";
+			__this.context.fillText("Render time: " + this.renderTimes[this.renderTimes.length-1] + "ms (avg.: "+this.calculateAverageRenderTime()+"ms)", 3, __this.canvas.height-15);
+		}
+	};	
 	
 	// KEY EVENTS
 	
@@ -251,8 +560,8 @@ Canvas.Drawing = function(canvas){
 	var current_keydown = document.onkeydown;
 	document.onkeydown = function(e){
 		if (current_keydown) current_keydown();
-		if(typeof _this.onKeyDown == "function"){
-			_this.onKeyDown(String.fromCharCode(e.which), e.which);
+		if(typeof __this.onKeyDown == "function"){
+			__this.onKeyDown(String.fromCharCode(e.which), e.which);
 		}
 	};
 	/**
@@ -268,13 +577,76 @@ Canvas.Drawing = function(canvas){
 	var current_keyup = document.onkeyup;
 	document.onkeyup = function(e){
 		if (current_keyup) current_keyup();
-		if(typeof _this.onKeyUp == "function"){
-			_this.onKeyUp(String.fromCharCode(e.which), e.which);
+		if(typeof __this.onKeyUp == "function"){
+			__this.onKeyUp(String.fromCharCode(e.which), e.which);
 		}
 	};
 	
+	
 	// MOUSE EVENTS
+	
+	// takes layers because it is recursive (recurses through groups)
+	var checkForHit = function(x, y, layers){
+		// if no layers were given then use the scene
+		if (!layers) layers = sceneByLayer();
+
+		// loop through the objects
+		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
+			
+			if (layers[i-1] instanceof Canvas.Palette.Group){ // group
+				if (checkForHit(x, y, layers[i-1].membersByLayer())) {
+					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
+						var tmp_debug = Canvas.debug;
+						Canvas.debug = (Canvas.debug === true) ? false : true;
+						layers[i-1].draw([this], __this.context, true); // trance each of the objects
+						if (__this.context.isPointInPath(x, y)) {
+							Canvas.debug = tmp_debug;
+							return layers[i-1];
+						}
+						Canvas.debug = tmp_debug;
+					} else {
+						return layers[i-1];
+					}
+				}
+			} else {
+				layers[i-1].draw([this], __this.context, true); // trance each of the objects
+				if (acceptsMouseEvents(layers[i-1]) && __this.context.isPointInPath(x, y)) {
+					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+						// XXX: We need to take account for masks. This is a hacky way of doing it:
+						// Normally the mask is drawn first but in debug mode the mask is draw 
+						// second so that it can be seen above the object. What we do here is 
+						// flip that sequence around by toggling debug mode. If we get a hit in
+						// both modes then we got a hit on the intersection between the object
+						// and the mask. We should probably replace this with a less hacky method
+						// that does the same thing but this will work for now.
+						var tmp_debug = Canvas.debug;
+						Canvas.debug = (Canvas.debug === true) ? false : true;
+						layers[i-1].draw([this], __this.context, true); // trance each of the objects
+						if (__this.context.isPointInPath(x, y)) {
+							Canvas.debug = tmp_debug;
+							return layers[i-1];
+						}
+						Canvas.debug = tmp_debug;
+					} else {
+						return layers[i-1];
+					}
+				}
+			}
+		}
 		
+		// no hit
+		return false;
+	};
+	
+	
+	var acceptsMouseEvents = function(obj){
+		return (typeof obj.onRelease == "function" 
+			 || typeof obj.onPress == "function" 
+			 || typeof obj.onMouseOver == "function" 
+			 || obj.onMouseOut == "function");
+	};
+	
 	/**
 	 * The x coordinate of the position in pixels relative to the Drawing.
 	 * @property {read Number} Drawing.mousex
@@ -293,106 +665,45 @@ Canvas.Drawing = function(canvas){
 	this.mousey = undefined;
 
 	this.context.canvas.onmouseup = function(e){
-		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
-		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
-		var hit = _this.checkForHit(x, y);
+		var hit = checkForHit(x, y);
 		if (hit && hit.onRelease) hit.onRelease({x:x, y:y}, hit);
 	};
 	this.context.canvas.onmousedown = function(e){
-		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
-		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
-		var hit = _this.checkForHit(x, y);
+		var hit = checkForHit(x, y);
 		if (hit && hit.onPress) hit.onPress({x:x, y:y}, hit);
 	};
 	this.context.canvas.onclick = function(e){
 		// click events
 	};
-	this.lastOverObject = undefined;
+	var lastOverObject;
 	this.context.canvas.onmousemove = function(e){
 		// move over events
 		// mouse out events
 		// update local mouse coords
-		var x = (e.offsetX) ? e.offsetX : e.layerX - _this.canvas.offsetLeft;
-		var y = (e.offsetY) ? e.offsetY : e.layerY - _this.canvas.offsetTop;
+		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
-		_this.mousex = x;
-		_this.mousey = y;
+		__this.mousex = x;
+		__this.mousey = y;
 		
-		var hit = _this.checkForHit(x, y);
-		if (_this.lastOverObject && _this.lastOverObject.onMouseOut && hit != _this.lastOverObject) _this.lastOverObject.onMouseOut({x:x, y:y}, hit); 
+		var hit = checkForHit(x, y);
+		if (lastOverObject && lastOverObject.onMouseOut && hit != lastOverObject) lastOverObject.onMouseOut({x:x, y:y}, hit); 
 		if (hit) {
-			_this.canvas.style.cursor = hit.cursor;
-			if (hit.onMouseOver && hit != _this.lastOverObject) hit.onMouseOver({x:x, y:y}, hit); 
-			_this.lastOverObject = hit;
+			__this.canvas.style.cursor = hit.cursor;
+			if (hit.onMouseOver && hit != lastOverObject) hit.onMouseOver({x:x, y:y}, hit); 
+			lastOverObject = hit;
 		} else {
-			_this.canvas.style.cursor = "default";			
-			_this.lastOverObject = undefined;
+			__this.canvas.style.cursor = "default";			
+			lastOverObject = undefined;
 		}
 	};
 	
-	// takes layers because it is recursive (recurses through groups)
-	this.checkForHit = function(x, y, layers){
-		// if no layers were given then use the scene
-		if (!layers) layers = _this.sceneByLayer();
-
-		// loop through the objects
-		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
-			
-			if (layers[i-1] instanceof Canvas.Palette.Group){ // group
-				if (_this.checkForHit(x, y, layers[i-1].membersByLayer())) {
-					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
-						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
-						var tmp_debug = Canvas.debug;
-						Canvas.debug = (Canvas.debug === true) ? false : true;
-						layers[i-1].draw([this], _this.context, true); // trance each of the objects
-						if (_this.context.isPointInPath(x, y)) {
-							Canvas.debug = tmp_debug;
-							return layers[i-1];
-						}
-						Canvas.debug = tmp_debug;
-					} else {
-						return layers[i-1];
-					}
-				}
-			} else {
-				layers[i-1].draw([this], _this.context, true); // trance each of the objects
-				if (_this.acceptsMouseEvents(layers[i-1]) && _this.context.isPointInPath(x, y)) {
-					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
-						// XXX: We need to take account for masks. This is a hacky way of doing it:
-						// Normally the mask is drawn first but in debug mode the mask is draw 
-						// second so that it can be seen above the object. What we do here is 
-						// flip that sequence around by toggling debug mode. If we get a hit in
-						// both modes then we got a hit on the intersection between the object
-						// and the mask. We should probably replace this with a less hacky method
-						// that does the same thing but this will work for now.
-						var tmp_debug = Canvas.debug;
-						Canvas.debug = (Canvas.debug === true) ? false : true;
-						layers[i-1].draw([this], _this.context, true); // trance each of the objects
-						if (_this.context.isPointInPath(x, y)) {
-							Canvas.debug = tmp_debug;
-							return layers[i-1];
-						}
-						Canvas.debug = tmp_debug;
-					} else {
-						return layers[i-1];
-					}
-				}
-			}
-		}
-		
-		// no hit
-		return false;
-	};
-	
-	
-	this.acceptsMouseEvents = function(obj){
-		return (typeof obj.onRelease == "function" 
-			 || typeof obj.onPress == "function" 
-			 || typeof obj.onMouseOver == "function" 
-			 || obj.onMouseOut == "function");
-	};
 	
 	// COPY AND SAVE FUNCTIONS
 		
@@ -400,6 +711,11 @@ Canvas.Drawing = function(canvas){
 	 * Version: 1.0
 	 * LastModified: Dec 25 1999
 	 * This library is free.  You can redistribute it and/or modify it.
+	 */
+	
+	/* 
+	 * Adapted for use with Canvas API by Oliver Moran (2010)
+	 *
 	 */
 	
 	/*
@@ -530,6 +846,12 @@ Canvas.Drawing = function(canvas){
 	 * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 	 * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 	 */
+	
+	/* 
+	 * Adapted for use with Canvas API by Oliver Moran (2010)
+	 *
+	 */
+
 
 	var bHasImageData = !!(this.context.getImageData);
 	var bHasDataURL = !!(this.canvas.toDataURL);
@@ -740,10 +1062,6 @@ Canvas.Drawing = function(canvas){
 	
 	// End of (c) 2008 Jacob Seidelin
 	
-	
-	
-	
-	
 	/**
 	 * Downloads the current canvas or a region of it as an image file.  Access to this function can hinder the loading of content so it can only be accessed if the contents of the Library has fully loaded.
 	 * @function {public Boolean} Drawing.save
@@ -810,1002 +1128,1121 @@ Canvas.Drawing = function(canvas){
 		
 		return saveAsBMP(this.canvas, true, x, y, width, height);
 	};
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+};
 
-	// ANIMATION
-	
-	/**
-	 * The frame rate in fames per second of animations.
-	 * @property {read write Number} Drawing.framerate
-	 * @see Drawing.start
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.framerate = 12;
-	/**
-	 * A function called immediately before the drawing is drawn.
-	 * @function {public void} Drawing.onBeforeDraw
-	 * @param {Object} _this A reference to the Canvas.drawing object because this is lost though the onTimeOut function
-	 * @see Drawing.onDraw
-	 * @return Nothing
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.onBeforeDraw = function(_this){};
-	/**
-	 * A function called immediately after the drawing is drawn.
-	 * @function {public void} Drawing.onDraw
-	 * @param {Object} _this A reference to the Canvas.drawing object because this is lost though the onTimeOut function
-	 * @return Nothing
-	 * @see Drawing.onBeforeDraw
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.onDraw = function(_this){};
-	/**
-	 * Starts animation (calls draw at regular intervals). Called by default when intialising a drawing object.
-	 * @function {public static void} Drawing.start
-	 * @return Nothing
-	 * @see Drawing.framerate
-	 * @see Drawing.stop
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.start = function(){
-		this.stop();
-		var self = this;
-		this.interval = setInterval(function(){
-				if (!self.skipFrame) self.draw();
-			}, 1000/this.framerate);
-	};
-	/**
-	 * Stops animation.
-	 * @function {public void} Drawing.stop
-	 * @return Nothing
-	 * @see Drawing.start
-	 * @return Nothing
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stop = function(){
-		clearInterval(this.interval);
-	};
-	
 
-	// MANAGE THE SCENE
-	
-	this.scene = {}; // an object that holds the "scene"
-	
+(function(){
 	/**
-	 * Adds a Palette object to the Drawing.
-	 * @function {public Boolean} Drawing.add
-	 * @param {Object} obj The object to be added
-	 * @param {optional String} name An instance name for the object
-	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to false, which adds a shallow copy of the object is added to the drawing.
-	 * @return true if the object was added, otherwise false.
-	 * @see Drawing.remove
+	 * The static Library class where images and other media are stored.
+	 * @object {static} Canvas.Library
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
-	this.add = function(obj, name, copy){
-		// sort out the overloading: 
-		if (name === undefined || typeof name == "boolean") {
-			if (typeof name === "boolean") copy = name;
-			var i = 0;
-			while (this.scene["sprite "+i]) i++;
-			name = "sprite "+i;
-		}
+	 */
+	Canvas.Library = {};
+	/**
+	 * The array of images in the Canvas API library.
+	 * @property {private Array} Library.images
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	var images = new Array();
+	/**
+	 * Adds an image to the Canvas API library.
+	 * @function {public static void} Library.addImage
+	 * @param {String} src The URL of an image file.
+	 * @return A reference to the image in the library.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Library.addImage = function(src){
+		var image = new Image();
 		
-		if (!obj || !obj.draw) return false;
-		
-		if (copy) this.scene[name] = obj.copy();
-		else this.scene[name] = obj;
-		
-		return true;
+		image.onload = function(){
+			// loaded
+		};
+		// image.onerror
+		// image.onabort
+		image.src = src;
+	
+		images.push(image);
+		return images[images.length-1];
 	};
-	
 	/**
-	 * Removes a Palette object from the Drawing.
-	 * @function {public void} Drawing.remove
-	 * @return Nothing
-	 * @see Drawing.add
+	 * The array of audio files in the Canvas API library.
+	 * @property {Array} Library.audio
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
-	this.remove = function(name){
-		delete this.scene[name];
-	};
-	
+	 */
+	var audio = new Array();
 	/**
-	 * Determines if the drawing is ready to be rendered (i.e. if the necessary images, etc. have been downloaded)
-	 * @function {public Boolean} Drawing.ready
-	 * @return true if the drawing is ready to be rendered otherwise false.
-	 * @see Drawing.remove
+	 * Adds an audio file to the Canvas API library.
+	 * @function {public static void} Library.addAudio
+	 * @param {String} src The URL of an audio file.
+	 * @return A reference to the audio file in the library.
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
-	this.ready = function(){
-		var c = 0;
-		for (var obj in this.scene){
-			for (var prop in this.scene[obj]){
-				try {
-					// Opera throws exceptions around instanceof, we we dance around it
-					if (this.scene[obj].audio != undefined && !this.scene[obj].audio.complete)
-						c++; // audio
-					else if (this.scene[obj].video != undefined && !this.scene[obj].video.complete)
-						c++; // audio
-					else if (this.scene[obj].image != undefined && !this.scene[obj].image.complete)
-						c++; // images
-					else if (this.scene[obj][prop].image && !this.scene[obj][prop].image.complete)
-						c++; // fills
-				} catch(err){
-					// An exception may be throw owing to properties appearing and disappearing asynchronously.
-					// If an exception is thrown, it can normally be safely be ignored but causes the method to reurn false.
-					c++;
-				}
+	 */
+	Canvas.Library.addAudio = function(src){
+		var audio = document.createElement("audio");
+		
+		// basic settings
+		audio.setAttribute("preload", "preload");
+		audio.setAttribute("hidden", "hidden");
+		audio.setAttribute("style", "display:none;");
+		
+		
+		// set the source
+		if (typeof src == "string") audio.setAttribute("src", src);
+		else if (typeof src == "object"){
+			for (var n in src){
+				var source = document.createElement("source");
+				source.setAttribute("src", src[n]);
+				audio.appendChild(source);
 			}
 		}
+	
+		document.body.appendChild(audio);
+		// audio.onerror
+		// audio.onabort
 		
-		return (c == 0);
+		var checkIfLoaded = function(){
+			if (isNaN(audio.duration))
+				setTimeout(function(){
+						checkIfLoaded();
+					}, 10);
+			else {
+				// loaded
+				audio.complete = true;
+			}
+		};
+		checkIfLoaded();
+	
+		audio.push(audio);
+		return audio[audio.length-1];
 	};
-	
-	
 	/**
-	 * A method to bubble sort the objects in the scene by layer.
-	 * @function {private static void} Canvas.sceneByLayer
-	 * @param {Array} array The object to bequeath attributes to.
-	 * @return An array containing the objects in the scene.
+	 * The array of video files in the Canvas API library.
+	 * @property {Array} Library.video
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.sceneByLayer = function() {
-		var array = new Array();
-		for (var obj in this.scene)
-			array.push(this.scene[obj]);
+	var videos = new Array();
+	/**
+	 * Adds a video file to the Canvas API library.
+	 * @function {public static void} Library.addVideo
+	 * @param {String} src The URL of a video file.
+	 * @return A reference to the video file in the library.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Library.addVideo = function(src){
+		var video = document.createElement("video");
 		
-		for (var i = 0; i < array.length; i++) {
-			for (var j = 0; j < (array.length-1); j++) {
-				if (array[j].layer > array[j+1].layer) {
-					var tmp = array[j+1];
-					array[j+1] = array[j];
-					array[j] = tmp;
-				}
+		// basic settings
+		video.setAttribute("preload", "preload");
+		video.setAttribute("hidden", "hidden");
+		video.setAttribute("style", "display:none;");
+		// XXX: The poster option is taken out because it is not shown when the video is fully loaded.
+		//       Canvas API loads the video before it shows it, which means the poster is never shown.
+		//       If we take out the 'ready' check the video throws an error because the width/height are 
+		//       unknown.
+		// if (poster) video.setAttribute("poster", poster);
+		
+		// set the source
+		if (typeof src == "string") video.setAttribute("src", src);
+		else if (typeof src == "object"){
+			for (var n in src){
+				var source = document.createElement("source");
+				source.setAttribute("src", src[n]);
+				video.appendChild(source);
 			}
 		}
-		return array;
-	};
 	
-	/**
-	 * Paints the Drawing. If the drawing is not ready to be painted, the method will retry at a rate of once every 1 miliseconds.
-	 * @function {public void} Drawing.draw
-	 * @return Nothing
-	 * @see Drawing.animation.start
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.skipFrame = false; // basic frame skipping
-	this.draw = function(){
-		if (!this.ready()){
-			this.skipFrame = true;
-			// if images are not loaded then set a timeout that continually checks that they have
-			var self = this;
-			setTimeout(function(){
-					self.draw();
-				}, 1);
-			return;
-		}
-		this.skipFrame = false;
+		document.body.appendChild(video);
 		
-		this.onBeforeDraw();
-
-		var draw_start_time = new Date();
-		
-		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		var layers = this.sceneByLayer();
-		for (var i in layers) if (layers[i]) layers[i].draw([this], this.context);
-		
-		var draw_end_time = new Date();
-		
-		if (Canvas.debug === true){
-			this.debug.addRenderTime(draw_end_time.getTime()-draw_start_time.getTime());
-			this.debug.show();
-		}
-		
-		this.onDraw();
+		// video.onerror
+		// video.onabort
+		var checkIfLoaded = function(){
+			if (isNaN(video.duration) || video.duration==0)
+				setTimeout(function(){
+						checkIfLoaded();
+					}, 10);
+			else {
+				// loaded
+				video.complete = true;
+			}
+		};
+		checkIfLoaded();
+	
+		videos.push(video);
+		return videos[videos.length-1];
 	};
 	
-	// DEBUG
-	
-	this.debug = {};
-	this.debug.renderTimes = new Array();
-	this.debug.addRenderTime = function(time){
-		this.renderTimes.push(time);
-		if (this.renderTimes.length > 100) this.renderTimes.shift();
-	};
-	this.debug.calculateAverageRenderTime = function(){
-		var total = 0;
-		for (var time in this.renderTimes) total += this.renderTimes[time];
-		return (total/this.renderTimes.length).toFixed(2);
-	};
-	this.debug.show = function(){
-		var debug_rect = new Canvas.Palette.Rectangle(0, _this.canvas.height-15, _this.canvas.width, 15);
-		debug_rect.stroke.color = "transparent";
-		debug_rect.fill = "lightGrey";
-		debug_rect.alpha = 75;
-		debug_rect.draw([this], _this.context);
-		
-		var debug_text = new Canvas.Palette.Text(3, _this.canvas.height-15, "Render time: " + _this.debug.renderTimes[_this.debug.renderTimes.length-1] + "ms (avg.: "+_this.debug.calculateAverageRenderTime()+"ms)");
-		debug_text.font = "10px 'Courier', monospace";
-		if (_this.debug.renderTimes[_this.debug.renderTimes.length-1] > 1000/_this.framerate) debug_text.fill = "red";
-		debug_text.draw([this], _this.context);
-	};
-};
-
-
-/**
- * The static Library class where images and other media are stored.
- * @object {static} Canvas.Library
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library = {};
-/**
- * The array of images in the Canvas API library.
- * @property {Array} Library.images
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.images = new Array();
-/**
- * Adds an image to the Canvas API library.
- * @function {public static void} Library.addImage
- * @param {String} src The URL of an image file.
- * @return A reference to the image in the library.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.addImage = function(src){
-	var image = new Image();
-	
-	image.onload = function(){
-		// loaded
-	};
-	// image.onerror
-	// image.onabort
-	image.src = src;
-
-	Canvas.Library.images.push(image);
-	return Canvas.Library.images[Canvas.Library.images.length-1];
-};
-/**
- * The array of audio files in the Canvas API library.
- * @property {Array} Library.audio
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.audio = new Array();
-/**
- * Adds an audio file to the Canvas API library.
- * @function {public static void} Library.addAudio
- * @param {String} src The URL of an audio file.
- * @return A reference to the audio file in the library.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.addAudio = function(src){
-	var audio = document.createElement("audio");
-	
-	// basic settings
-	audio.setAttribute("preload", "preload");
-	audio.setAttribute("hidden", "hidden");
-	audio.setAttribute("style", "display:none;");
-	
-	
-	// set the source
-	if (typeof src == "string") audio.setAttribute("src", src);
-	else if (typeof src == "object"){
-		for (var n in src){
-			var source = document.createElement("source");
-			source.setAttribute("src", src[n]);
-			audio.appendChild(source);
-		}
-	}
-
-	document.body.appendChild(audio);
-	// audio.onerror
-	// audio.onabort
-	
-	var checkIfLoaded = function(){
-		if (isNaN(audio.duration))
-			setTimeout(function(){
-					checkIfLoaded();
-				}, 10);
-		else {
-			// loaded
-			audio.complete = true;
-		}
-	};
-	checkIfLoaded();
-
-	Canvas.Library.audio.push(audio);
-	return Canvas.Library.audio[Canvas.Library.audio.length-1];
-};
-/**
- * The array of video files in the Canvas API library.
- * @property {Array} Library.video
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.videos = new Array();
-/**
- * Adds a video file to the Canvas API library.
- * @function {public static void} Library.addVideo
- * @param {String} src The URL of a video file.
- * @return A reference to the video file in the library.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Library.addVideo = function(src){
-	var video = document.createElement("video");
-	
-	// basic settings
-	video.setAttribute("preload", "preload");
-	video.setAttribute("hidden", "hidden");
-	video.setAttribute("style", "display:none;");
-	// XXX: The poster option is taken out because it is not shown when the video is fully loaded.
-	//       Canvas API loads the video before it shows it, which means the poster is never shown.
-	//       If we take out the 'ready' check the video throws an error because the width/height are 
-	//       unknown.
-	// if (poster) video.setAttribute("poster", poster);
-	
-	// set the source
-	if (typeof src == "string") video.setAttribute("src", src);
-	else if (typeof src == "object"){
-		for (var n in src){
-			var source = document.createElement("source");
-			source.setAttribute("src", src[n]);
-			video.appendChild(source);
-		}
-	}
-
-	document.body.appendChild(video);
-	
-	// video.onerror
-	// video.onabort
-	var checkIfLoaded = function(){
-		if (isNaN(video.duration) || video.duration==0)
-			setTimeout(function(){
-					checkIfLoaded();
-				}, 10);
-		else {
-			// loaded
-			video.complete = true;
-		}
-	};
-	checkIfLoaded();
-
-	Canvas.Library.videos.push(video);
-	return Canvas.Library.videos[Canvas.Library.videos.length-1];
-};
-
-
-
-/**
- * Returns an object describing the count of complete vs. incompletely loaded items in the library.
- * @function {public Object} Library.status
- * @return An object containing the following properties: total, incomplete, images, audio, videos, imagesIncomplete, audioIncomplete, videosIncomplete, videosIncomplete
- * @author Oliver Moran
- * @since 0.2
- */	
-Canvas.Library.status = function(){
-	var imagesIncomplete = 0;
-	for (var image in Canvas.Library.images)
-		if (Canvas.Library.images[image] && !Canvas.Library.images[image].complete) imagesIncomplete++;
-	
-	var audioIncomplete = 0;
-	for (var audio in Canvas.Library.audio)
-		if (Canvas.Library.audio[audio] && !Canvas.Library.audio[audio].complete) audioIncomplete++;
-
-	var videosIncomplete = 0;
-	for (var video in Canvas.Library.videos)
-		if (Canvas.Library.videos[video] && !Canvas.Library.videos[video].complete) videosIncomplete++;
-	
-	return {
-		total: Canvas.Library.images.length + Canvas.Library.audio.length + Canvas.Library.videos.length,
-		incomplete: imagesIncomplete + audioIncomplete + videosIncomplete,
-		
-		images: Canvas.Library.images.length,
-		audio: Canvas.Library.audio.length,
-		videos: Canvas.Library.videos.length,
-		
-		imagesIncomplete: imagesIncomplete,
-		audioIncomplete: audioIncomplete,
-		videosIncomplete: videosIncomplete
-	};
-};
-
-
-
-/**
- * The static Palette class, which contains the range of drawing objects available in the Canvas API.
- * @class {static} Canvas.Palette
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette = {};
-
-/**
- * The prototypical Palette Object. All Palette Objects (except Gradients) inherit these values, although some properties are reduntant for certain objects.
- * @constructor {public} Palette.Object
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Object = function(){
-	// DEFAULT STYLES FOR PALETTE OBJECTS
-	
 	/**
-	 * The stroke style Pallet objects.
-	 * @object {static} Palette.Object.stroke
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stroke = new Object();
-	/**
-	 * The stroke colour to be used for new Pallet objects. A CSS colour name, a hex value or a gradient.
-	 * @property {read write String} Palette.Object.stroke.color
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stroke.color = "black";
-	/**
-	 * The stroke width in pixels to be used for new Pallet objects.
-	 * @property {read write Number} Palette.Object.stroke.width
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stroke.width = 3;
-	/**
-	 * The stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "square".
-	 * @property {read write String} Palette.Object.stroke.cap
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stroke.cap = "butt";
-	/**
-	 * The way to join strokes used for new Pallet objects. Valid values are "bevel", "round" or "miter".
-	 * @property {read write String} Palette.Object.stroke.join
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.stroke.join = "miter";
-	/**
-	 * The fill colour to be used for new Pallet objects. Either a CSS colour name, a hex colour value or a gradient.
-	 * @property {read write String} Palette.Object.fill
-	 * @seePalette.Gradient
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.fill = "white";
-	/**
-	 * Whether to closed (true) or leave open (false) new Palette objects.
-	 * @property {read write Boolean} Palette.Object.close
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.close = true;
-	/**
-	 * The rotation of the Palette object in degrees around its origin.
-	 * @property {read write Number} Palette.Object.rotation
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.rotation = 0;
-	/**
-	 * The location of the Palette object's pivot point relative to the object's origin. Rotation of the object happens around this point.
-	 * @object {static} Palette.Object.origin
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.pivot = {};
-	/**
-	 * The x coordinate of the Palette object's pivot relative to the object's origin.
-	 * @property {read write Number} Palette.Object.pivot.x
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.pivot.x = 0;
-	/**
-	 * The y coordinate of the Palette object's pivot point relative to the objects natural origin.
-	 * @property {read write Number} Palette.Object.pivot.y
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.pivot.y = 0;
-	/**
-	 * The shadow to be applied to the Palette object.
-	 * @object {static} Palette.Object.shadow
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.shadow = {};
-	/**
-	 * The x offset of the Palette object's shadow.
-	 * @property {read write Number} Palette.Object.shadow.x
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.shadow.color = "transparent";
-	/**
-	 * The x offset of the Palette object's shadow.
-	 * @property {read write Number} Palette.Object.shadow.x
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.shadow.x = 5;
-	/**
-	 * The y offset of the Palette object's shadow.
-	 * @property {read write Number} Palette.Object.shadow.y
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.shadow.y = 5;
-	/**
-	 * The blur radius of the Palette object's shadow.
-	 * @property {read write Number} Palette.Object.shadow.blur
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.shadow.blur = 10;
-	/**
-	 * The transparancy (alpha) of the Palette object ranging from 0 (fully transparent) to 100 (fully opaque).
-	 * @property {read write Number} Palette.Object.alpha
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.alpha = 100;
-	/**
-	 * The start angle of a Circle object in degrees.
-	 * @property {read write Number} Palette.Object.start
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.start = 0;
-	/**
-	 * The end angle of a Circle object in degrees.
-	 * @property {read write Number} Palette.Object.end
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.end = 360;
-	/**
-	 * Whether a Circle object is drawn clockwise (true) or anti-clockwise (false).
-	 * @property {read write Boolean} Palette.Object.clockwise
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.clockwise = true;
-	/**
-	 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
-	 * @property {read write String} Palette.Object.font
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.font = "24px Helvetica,Verdana,Arial,sans-serif";
-	/** The alignent of the Text object. Valid values are "start", "end", "left", "right", "center". The default is "start".
-	 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
-	 * @property {read write String} Palette.Object.align
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.align = "start";
-	/** The baseline alignment of a Text object. Valid values are "top", "hanging", "middle", "alphabetic", "ideographic", "bottom". The default is "alphabetic".
-	 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
-	 * @property {read write String} Palette.Object.baseline
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.baseline = "top";
-	/**
-	 * The horizontal scaling to be applied to a Pallet object. 100 is original size. 50 is half size. 200 is double size.
-	 * @property {read write Number} Palette.Object.xscale
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.xscale = 100;
-	/**
-	 * The vertical scaling to be applied to a Pallet object. 100 is original size. 50 is half size. 200 is double size.
-	 * @property {read write Number} Palette.Object.yscale
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.yscale = 100;
-	/**
-	 * Clipping to be applied to the source of images and video.
-	 * @object {static} Palette.Object.clip
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.clip = {};
-	/**
-	 * The x coordinate of the top-left corner of the clipping area of an image or video relative to the image or video.
-	 * @property {read write Number} Palette.Object.clip.x
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.clip.x = 0;
-	/**
-	 * The y coordinate of the top-left corner of the clipping area of an image or video relative to the image or video.
-	 * @property {read write Number} Palette.Object.clip.y
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.clip.y = 0;
-	/**
-	 * The width of the clipping area of an image or video.
-	 * @property {read write Number} Palette.Object.clip.width
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.clip.width = undefined;
-	/**
-	 * The height of the clipping area of an image or video.
-	 * @property {read write Number} Palette.Object.clip.height
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.clip.height = undefined;
-	/**
-	 * A number representing the z-order of layers in which objects are ordered. Objects with higher layer numbers are layerd above objects with lower layer numbers.
-	 * @property {read write Number} Palette.Object.layer
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.layer = 0;
-	/**
-	 * The skew in degrees along the x-axis to be applied to the object.
-	 * @property {read write Number} Palette.Object.xskew
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.xskew = 0;
-	/**
-	 * The skew in degrees along the y-axis to be applied to the object.
-	 * @property {read write Number} Palette.Object.yskew
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.yskew = 0;
-	/**
-	 * The mask object for this object.
-	 * @property {read write Canvas.Palette.Mask} Palette.Object.mask
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.mask = {};
-	/**
-	 * The hitArea object for this object. If properly defined the object will fire click events.
-	 * @property {private read Canvas.Palette.Mask} Palette.Object.mask
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.hitArea = {};
-	/**
-	 * The mouse cursor to show when the mouse passes over an object (or it's hit area) if that object has a onRelease, onPress or onMouseOver function. This corresponds to the CSS cursor property so can contain a list of URLs (sperated by commaa) to custom pointers. It is recommended that if URLs are given that the final item in the list be the name of a generic custom type should none of the URLs be used. Valid generic values are auto, crosshair, default, e-resize, help, move, n-resize, ne-resize, nw-resize, pointer, progress, s-resize, se-resize, sw-resize, text, w-resize, wait and inherit. The default is pointer.
-	 * @property {write read String} Palette.Object.cursor
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.cursor = "pointer";
-
-	
-	// COMMON METHODS
-	
-	/**
-	 * Sets the hit area for a Palette object.
-	 * @function {public Boolean} Palette.Object.setHitArea
-	 * @param {Object} obj The hit area to be added
-	 * @param {optional Boolean} copy Whether to (deep) copy the hit area when settings it. Defaults to true, otherwise a shallow copy of the hit area is set for the object. 
-	 * @return true if the hit area was set, otherwise false.
+	 * Returns an object describing the count of complete vs. incompletely loaded items in the library.
+	 * @function {public Object} Library.status
+	 * @return An object containing the following properties: total, incomplete, images, audio, videos, imagesIncomplete, audioIncomplete, videosIncomplete, videosIncomplete
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */	
-	this.setHitArea = function(obj, copy){
-		if (!(obj instanceof Canvas.Palette.HitArea) || !obj.draw) return false;
+	Canvas.Library.status = function(){
+		var imagesIncomplete = 0;
+		for (var image in images)
+			if (images[image] && !images[image].complete) imagesIncomplete++;
 		
-		if (copy) this.hitArea = obj.copy();
-		else this.hitArea = obj;
-		
-		return true;
-	};
-	/**
-	 * Sets the mask for a Palette object.
-	 * @function {public Boolean} Palette.Object.setMask
-	 * @param {Object} obj The mask to be added
-	 * @param {optional Boolean} copy Whether to (deep) copy the mask when settings it. Defaults to true, otherwise a shallow copy of the mask is set for the object. 
-	 * @return true if the mask was set, otherwise false.
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */	
-	this.setMask = function(obj, copy){
-		if (!(obj instanceof Canvas.Palette.Mask) || !obj.draw) return false;
-		
-		if (copy) this.mask = obj.copy();
-		else this.mask = obj;
-		
-		return false;
-	};
-	
-	/**
-	 * A user-definable function that is called when the mouse button is released over the object or its hit area (or when a touch is released).
-	 * @function {public abstract void} Palette.Object.onClick
-	 * @param {Object} mouse An object describing the mouse position.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @param {Object} object The object that was clicked.
-	 * @return Nothing.
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.onRelease = undefined;
-	/**
-	 * A user-definable function that is called when the mouse button is pressed over the object or its hit area (or when a touch is started).
-	 * @function {public abstract void} Palette.Object.onPress
-	 * @param {Object} mouse An object describing the mouse position.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @param {Object} object The object that was clicked.
-	 * @return Nothing.
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.onPress = undefined;
-	/**
-	 * A user-definable function that is called when the mouse pointer is moved over the object or its hit area.
-	 * @function {public abstract void} Palette.Object.onMouseOver
-	 * @param {Object} mouse An object describing the mouse position.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @param {Object} object The object that the mouse was moved in to.
-	 * @return Nothing.
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.onMouseOver = undefined;
-	/**
-	 * A user-definable function that is called when the mouse pointer is moved out of the object or its hit area.
-	 * @function {public abstract void} Palette.Object.onMouseOut
-	 * @param {Object} mouse An object describing the mouse position.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @... {Number} x The mouse x position of mouse relative to the canvas.
-	 * @param {Object} object The object that the mouse was moved out of.
-	 * @return Nothing.
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	// this.onMouseOut = undefined;
+		var audioIncomplete = 0;
+		for (var audio in audio)
+			if (audio[audio] && !audio[audio].complete) audioIncomplete++;
 
+		var videosIncomplete = 0;
+		for (var video in videos)
+			if (videos[video] && !videos[video].complete) videosIncomplete++;
+		
+		return {
+			total: images.length + audio.length + videos.length,
+			incomplete: imagesIncomplete + audioIncomplete + videosIncomplete,
+			
+			images: images.length,
+			audio: audio.length,
+			videos: videos.length,
+			
+			imagesIncomplete: imagesIncomplete,
+			audioIncomplete: audioIncomplete,
+			videosIncomplete: videosIncomplete
+		};
+	};
+})();
+
+
+// START OF PALETTE SCOPE
+(function(){
+	/**
+	 * The static Palette class, which contains the range of drawing objects available in the Canvas API.
+	 * @class {static} Canvas.Palette
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette = {};
 	
-	/* A private function that sets the style just before the object is drawn. */
-	this.setStyle = function(senders, context){
+	/**
+	 * The prototypical Palette Object. All Palette Objects (except Gradients) inherit these values, although some properties are reduntant for certain objects.
+	 * @constructor {public static} Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	var baseObject = function(){
+		// DEFAULT STYLES FOR PALETTE OBJECTS
+		
+		/**
+		 * The stroke colour to be used for new Pallet objects. A CSS colour name, a hex value or a gradient.
+		 * @property {read write String} Palette.Object.stroke
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.stroke = "black";
+		/**
+		 * The stroke width in pixels to be used for new Pallet objects.
+		 * @property {read write Number} Palette.Object.strokeWidth
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.strokeWidth = 3;
+		/**
+		 * The stroke cap to be used for new Pallet objects. Valid values are "butt", "round" or "square".
+		 * @property {read write String} Palette.Object.strokeCap
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.strokeCap = "butt";
+		/**
+		 * The way to join strokes used for new Pallet objects. Valid values are "bevel", "round" or "miter".
+		 * @property {read write String} Palette.Object.strokeJoin
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.strokeJoin = "miter";
+		/**
+		 * The fill colour to be used for new Pallet objects. Either a CSS colour name, a hex colour value or a gradient.
+		 * @property {read write String} Palette.Object.fill
+		 * @seePalette.Gradient
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.fill = "white";
+		/**
+		 * Whether to closed (true) or leave open (false) new Palette objects.
+		 * @property {read write Boolean} Palette.Object.close
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.close = true;
+		/**
+		 * The rotation of the Palette object in degrees around its origin.
+		 * @property {read write Number} Palette.Object.rotation
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.rotation = 0;
+		/**
+		 * The x coordinate of the Palette object's pivot relative to the object's origin.
+		 * @property {read write Number} Palette.Object.pivotx
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.pivotx = 0;
+		/**
+		 * The y coordinate of the Palette object's pivot point relative to the objects natural origin.
+		 * @property {read write Number} Palette.Object.pivoty
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.pivoty = 0;
+		/**
+		 * The x offset of the Palette object's shadow.
+		 * @property {read write Number} Palette.Object.shadowColor
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.shadowColor = "transparent";
+		/**
+		 * The x offset of the Palette object's shadow.
+		 * @property {read write Number} Palette.Object.shadowx
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.shadowx = 5;
+		/**
+		 * The y offset of the Palette object's shadow.
+		 * @property {read write Number} Palette.Object.shadowy
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.shadowy = 5;
+		/**
+		 * The blur radius of the Palette object's shadow.
+		 * @property {read write Number} Palette.Object.shadowBlur
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.shadowBlur = 10;
+		/**
+		 * The transparancy (alpha) of the Palette object ranging from 0 (fully transparent) to 100 (fully opaque).
+		 * @property {read write Number} Palette.Object.alpha
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.alpha = 100;
+		/**
+		 * The start angle of a Circle object in degrees.
+		 * @property {read write Number} Palette.Object.start
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.start = 0;
+		/**
+		 * The end angle of a Circle object in degrees.
+		 * @property {read write Number} Palette.Object.end
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.end = 360;
+		/**
+		 * Whether a Circle object is drawn clockwise (true) or anti-clockwise (false).
+		 * @property {read write Boolean} Palette.Object.clockwise
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.clockwise = true;
+		/**
+		 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
+		 * @property {read write String} Palette.Object.font
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.font = "24px Helvetica,Verdana,Arial,sans-serif";
+		/** The alignent of the Text object. Valid values are "start", "end", "left", "right", "center". The default is "start".
+		 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
+		 * @property {read write String} Palette.Object.align
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.align = "start";
+		/** The baseline alignment of a Text object. Valid values are "top", "hanging", "middle", "alphabetic", "ideographic", "bottom". The default is "alphabetic".
+		 * The font used by the Text circle object. Uses a format analogous to the CSS font property.
+		 * @property {read write String} Palette.Object.baseline
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.baseline = "top";
+		/**
+		 * The horizontal scaling to be applied to a Pallet object. 100 is original size. 50 is half size. 200 is double size.
+		 * @property {read write Number} Palette.Object.xscale
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.xscale = 100;
+		/**
+		 * The vertical scaling to be applied to a Pallet object. 100 is original size. 50 is half size. 200 is double size.
+		 * @property {read write Number} Palette.Object.yscale
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.yscale = 100;
+		/**
+		 * The x coordinate of the top-left corner of the clipping area of an image or video relative to the image or video.
+		 * @property {read write Number} Palette.Object.clipx
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.clipx = 0;
+		/**
+		 * The y coordinate of the top-left corner of the clipping area of an image or video relative to the image or video.
+		 * @property {read write Number} Palette.Object.clipy
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.clipy = 0;
+		/**
+		 * The width of the clipping area of an image or video.
+		 * @property {read write Number} Palette.Object.clipWidth
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.clipWidth = undefined;
+		/**
+		 * The height of the clipping area of an image or video.
+		 * @property {read write Number} Palette.Object.clipHeight
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.clipHeight = undefined;
+		/**
+		 * A number representing the z-order of layers in which objects are ordered. Objects with higher layer numbers are layerd above objects with lower layer numbers.
+		 * @property {read write Number} Palette.Object.layer
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.layer = 0;
+		/**
+		 * The skew in degrees along the x-axis to be applied to the object.
+		 * @property {read write Number} Palette.Object.xskew
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.xskew = 0;
+		/**
+		 * The skew in degrees along the y-axis to be applied to the object.
+		 * @property {read write Number} Palette.Object.yskew
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.yskew = 0;
+		/**
+		 * The mask object for this object.
+		 * @property {read write Canvas.Palette.Mask} Palette.Object.mask
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.mask = {};
+		/**
+		 * The hitArea object for this object. If properly defined the object will fire click events.
+		 * @property {private read Canvas.Palette.Mask} Palette.Object.mask
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.hitArea = {};
+		/**
+		 * The mouse cursor to show when the mouse passes over an object (or it's hit area) if that object has a onRelease, onPress or onMouseOver function. This corresponds to the CSS cursor property so can contain a list of URLs (sperated by commaa) to custom pointers. It is recommended that if URLs are given that the final item in the list be the name of a generic custom type should none of the URLs be used. Valid generic values are auto, crosshair, default, e-resize, help, move, n-resize, ne-resize, nw-resize, pointer, progress, s-resize, se-resize, sw-resize, text, w-resize, wait and inherit. The default is pointer.
+		 * @property {write read String} Palette.Object.cursor
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.cursor = "pointer";
+	
+		
+		// COMMON METHODS
+		
+		/**
+		 * Sets the hit area for a Palette object.
+		 * @function {public Boolean} Palette.Object.setHitArea
+		 * @param {Object} obj The hit area to be added
+		 * @param {optional Boolean} copy Whether to (deep) copy the hit area when settings it. Defaults to true, otherwise a shallow copy of the hit area is set for the object. 
+		 * @return true if the hit area was set, otherwise false.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */	
+		this.setHitArea = function(obj, copy){
+			if (!(obj instanceof Canvas.Palette.HitArea) || !obj.draw) return false;
+			
+			if (copy) this.hitArea = obj.copy();
+			else this.hitArea = obj;
+			
+			return true;
+		};
+		/**
+		 * Sets the mask for a Palette object.
+		 * @function {public Boolean} Palette.Object.setMask
+		 * @param {Object} obj The mask to be added
+		 * @param {optional Boolean} copy Whether to (deep) copy the mask when settings it. Defaults to true, otherwise a shallow copy of the mask is set for the object. 
+		 * @return true if the mask was set, otherwise false.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */	
+		this.setMask = function(obj, copy){
+			if (!(obj instanceof Canvas.Palette.Mask) || !obj.draw) return false;
+			
+			if (copy) this.mask = obj.copy();
+			else this.mask = obj;
+			
+			return false;
+		};
+		
+		/**
+		 * A user-definable function that is called when the mouse button is released over the object or its hit area (or when a touch is released).
+		 * @function {public abstract void} Palette.Object.onClick
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @param {Object} object The object that was clicked.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onRelease = undefined;
+		/**
+		 * A user-definable function that is called when the mouse button is pressed over the object or its hit area (or when a touch is started).
+		 * @function {public abstract void} Palette.Object.onPress
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @param {Object} object The object that was clicked.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onPress = undefined;
+		/**
+		 * A user-definable function that is called when the mouse pointer is moved over the object or its hit area.
+		 * @function {public abstract void} Palette.Object.onMouseOver
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @param {Object} object The object that the mouse was moved in to.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onMouseOver = undefined;
+		/**
+		 * A user-definable function that is called when the mouse pointer is moved out of the object or its hit area.
+		 * @function {public abstract void} Palette.Object.onMouseOut
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @param {Object} object The object that the mouse was moved out of.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onMouseOut = undefined;
+	
+		
+		/**
+		 * Returns a deep copy of the object.
+		 * @function {public void} Palette.Object.copy
+		 * @return A deep copy of the object.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.copy = function(obj){
+			var obj2;
+			if (obj == null) {
+				obj = this;
+				// create new object
+				if (this instanceof Canvas.Palette.Line) obj2 = new Canvas.Palette.Line();
+				else if (this instanceof Canvas.Palette.Polygon) obj2 = new Canvas.Palette.Polygon();
+				else if (this instanceof Canvas.Palette.Rectangle) obj2 = new Canvas.Palette.Rectangle();
+				else if (this instanceof Canvas.Palette.Circle) { obj2 = new Canvas.Palette.Circle(); }
+				else if (this instanceof Canvas.Palette.Arc) obj2 = new Canvas.Palette.Arc();
+				else if (this instanceof Canvas.Palette.Bezier) obj2 = new Canvas.Palette.Bezier();
+				else if (this instanceof Canvas.Palette.Quadratic) obj2 = new Canvas.Palette.Quadratic();
+				else if (this instanceof Canvas.Palette.Image) obj2 = new Canvas.Palette.Image();
+				else if (this instanceof Canvas.Palette.Audio) obj2 = new Canvas.Palette.Audio();
+				else if (this instanceof Canvas.Palette.Video) obj2 = new Canvas.Palette.Video();
+				else if (this instanceof Canvas.Palette.Text) obj2 = new Canvas.Palette.Text();
+				else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Group();
+				else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Procedure();
+				else return undefined; // uh-oh!
+			} else {
+				if (obj instanceof Array) obj2 = new Array();
+				else if (obj instanceof Canvas.Palette.Gradient) obj2 = new Canvas.Palette.Gradient();
+				else if (obj instanceof Canvas.Palette.Radial) obj2 = new Canvas.Palette.Radial();
+				else if (obj instanceof Canvas.Palette.Pattern) obj2 = new Canvas.Palette.Pattern();
+				else if (obj instanceof Canvas.Palette.Mask) obj2 = new Canvas.Palette.Mask();
+				else if (obj instanceof Canvas.Palette.HitArea) obj2 = new Canvas.Palette.HitArea();
+				else if (obj && obj.constructor == Object) obj2 = new Object();
+				else return obj; // all other types we return as references
+			}
+	
+			for (var prop in obj) {
+				obj2[prop] = this.copy(obj[prop]);
+			}
+			
+			return obj2;
+		};
+		
+		this.isMaskingObject = function(senders){
+			for (var i=0; i<senders.length; i++)
+				if (senders[i] instanceof Canvas.Palette.Mask) return true;
+			return false;
+		};
+		
+		this.beforeDrawObject = function(x, y, senders, context, trace){
+			if (!this.isMaskingObject(senders)) {
+				if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug !== true) {
+					// must be rendered after object in debug mode so we can see it 
+					context.save();
+					context.translate(x, y);
+					this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
+					context.translate(-x, -y);
+				}
+	
+				// TODO: add error catching for incorrectly set properties
+				/*
+				if (this.alpha < 0 || this.alpha > 100 || isNaN(this.alpha) || Math.round(this.alpha) == Infinity) {
+					this.alpha = baseObject.alpha;
+				}
+				*/
+				context.globalCompositeOperation = "source-over";
+				
+				context.lineWidth = this.strokeWidth;
+				context.lineCap = this.strokeCap;
+				context.lineJoin = this.strokeJoin;
+				context.shadowOffsetX = this.shadowx;
+				context.shadowOffsetY = this.shadowy;  
+				context.shadowBlur = this.shadowBlur;
+				
+				context.strokeStyle = this.stroke;
+				context.shadowColor = this.shadowColor;
+				if (this.fill instanceof Canvas.Palette.Gradient || 
+					this.fill instanceof Canvas.Palette.Radial || 
+					this.fill instanceof Canvas.Palette.Pattern){
+						context.fillStyle = this.fill.draw([this], context);
+				} else {
+					context.fillStyle = this.fill;
+				}
+				
+				context.globalAlpha = this.alpha * (1/100);
+				for (var sender in senders)
+					if (senders[sender].alpha) 
+						context.globalAlpha *= senders[sender].alpha * (1/100);
+				
+				if (this instanceof Canvas.Palette.Text){
+					context.font = this.font;
+					context.textAlign = this.align;
+					context.textBaseline = this.baseline;
+				}
+			}
+		
+			// translate
+			context.translate(x, y);
+			// rotate
+			context.rotate(this.rotation * Math.PI/180);
+			// scale and skew
+			context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
+		};
+		
+		this.afterDrawObject = function(x, y, senders, context, trace){
+			if (this.hitArea instanceof Canvas.Palette.HitArea && (trace || Canvas.debug === true)){
+				this.hitArea.draw(Canvas.Utils.pushArray(senders, this), context, trace);
+			}
+	
+			// reverse the transformations in series
+			context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
+			context.rotate(this.rotation * -Math.PI/180);
+			context.translate(x, y);
+	
+			// must be rendered after object in debug mode so we can see it 
+			if (!this.isMaskingObject(senders)) {
+				if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug === true) {
+					context.save();
+					context.translate(-x, -y);
+					this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
+					context.translate(x, y);
+				}
+	
+				if (this.mask instanceof Canvas.Palette.Mask) context.restore();
+			}
+		};
+		
+		
+		// ANIMATION
+		
 		/*
-		if (this.alpha < 0 || this.alpha > 100 || isNaN(this.alpha) || Math.round(this.alpha) == Infinity) {
-			this.alpha = Canvas.Palette.Object.alpha;
-		}
-		*/
-		context.globalCompositeOperation = "source-over";
+		 * Yuichi Tateno. <hotchpotch@N0!spam@gmail.com>
+		 * http://rails2u.com/
+		 * 
+		 * The MIT License
+		 * --------
+		 * Copyright (c) 2007 Yuichi Tateno
+		 * 
+		 * Permission is hereby granted, free of charge, to any person obtaining a copy
+		 * of this software and associated documentation files (the "Software"), to deal
+		 * in the Software without restriction, including without limitation the rights
+		 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+		 * copies of the Software, and to permit persons to whom the Software is
+		 * furnished to do so, subject to the following conditions:
+		 * 
+		 * The above copyright notice and this permission notice shall be included in
+		 * all copies or substantial portions of the Software.
+		 * 
+		 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+		 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+		 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+		 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+		 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+		 * THE SOFTWARE.
+		 *
+		 */
+		 
+		/* 
+		 * The following is based on JSTweener by Yuichi Tateno:
+		 * http://coderepos.org/share/wiki/JSTweener
+		 *
+		 * Adapted for use with Canvas API by Oliver Moran (2010)
+		 *
+		 */
+	
+		/**
+		 * The static Tweener class, which contains a range of methods for animating Pallet Objects.
+		 * @class {private static} Palette.Object.Tweener
+		 * @author Yuichi Tateno
+		 * @since 0.2
+		 */
+		var Tweener = {
+		    looping: false,
+		    objects: [],
+		    defaultOptions: {
+			    framerate: 12,
+		        time: 1,
+		        transition: 'linear',
+		        delay: 0,
+		        onStart: undefined,
+		        onStartParams: undefined,
+		        onUpdate: undefined,
+		        onUpdateParams: undefined,
+		        onComplete: undefined,
+		        onCompleteParams: undefined
+		    },
+		    inited: false,
+		    easingFunctionsLowerCase: {},
+		    init: function() {
+		        this.inited = true;
+		        for (var key in easingFunctions) {
+		            this.easingFunctionsLowerCase[key.toLowerCase()] = easingFunctions[key];
+		        }
+		    },
+			/**
+			 * Applies a tween to a Palette Object.
+			 * @function {private static void} Palette.Object.Tweener.doTween
+			 * @param {Object} obj The object to apply the tween to. This object may be the palette object itself or a sub-object (such as stroke).
+			 * @param {Object} options An object containing parameters that define the behavior of the tween.
+			 * @... {optional Number} time The duration in seconds of the tween. Defaults to 1.
+			 * @... {optional String} transition The name of the tween to use. Valid values are "linear", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic", "easeInOutCubic", "easeOutInCubic", "easeInQuart", "easeOutQuart", "easeInOutQuart", "easeOutInQuart", "easeInQuint", "easeOutQuint", "easeInOutQuint", "easeOutInQuint", "easeInSine", "easeOutSine", "easeInOutSine", "easeOutInSine", "easeInExpo", "easeOutExpo", "easeInOutExpo", "easeOutInExpo", "easeInCirc", "easeOutCirc", "easeInOutCirc", "easeOutInCirc", "easeInElastic", "easeOutElastic", "easeInOutElastic", "easeOutInElastic", "easeInBack", "easeOutBack", "easeInOutBack", "easeOutInBack", "easeInBounce", "easeOutBounce", "easeInOutBounce", "easeOutInBounce". Default it "linear". 
+			 * @... {optional Number} delay A delay in seconds before the tween begins.
+			 * @... {optional Function} onComplete A function called on completion of the tween.
+			 * @... {optional Object} onCompleteParams A custom object to be passed as a second argument to the onComplete function. The first argument is an object that describes the tween.
+			 * @... {optional Function} onUpdate A function called on a each frame of the animation.
+			 * @... {optional Object} onUpdateParams A custom object to be passed as a second argument to the onUpdate function. The first argument is an object that describes the tween.
+			 * @... {optional Function} onStart A function called on start of the tween.
+			 * @... {optional Object} onStartParams A custom object to be passed as a second argument to the onStart function. The first argument is an object that describes the tween.
+			 * @... {Number} prop1 A property of obj to be tweened.
+			 * @... {optional Number} propN (Any number of properties of obj may be passed.)
+			 * @return Nothing
+			 * @author Oliver Moran
+			 * @since 0.2
+			 */	
+		    doTween: function(obj, options) {
+		        var self = this;
+		        if (!this.inited) this.init();
+		        var o = {};
+		        o.target = obj;
+		        o.targetPropeties = {};
+		        
+		        for (var key in this.defaultOptions) {
+		            if (typeof options[key] != 'undefined') {
+		                o[key] = options[key];
+		                delete options[key];
+		            } else {
+		                o[key] = this.defaultOptions[key];
+		            }
+		        }
+	
+		        if (typeof o.transition == 'function') {
+		            o.easing = o.transition;
+		        } else {
+		            o.easing = this.easingFunctionsLowerCase[o.transition.toLowerCase()];
+		        }
+	
+		        for (var key in options) {
+		            var sB = obj[key];
+		            o.targetPropeties[key] = {
+		                b: sB,
+		                c: options[key] - sB
+		            };
+		        }
+	
+		        setTimeout(function() {
+		            o.startTime = (new Date() - 0);
+		            o.endTime = o.time * 1000 + o.startTime;
+	
+		            if (typeof o.onStart == 'function') {
+		                if (o.onStartParams) {
+		                    o.onStart.apply(o, o.onStartParams);
+		                } else {
+		                    o.onStart();
+		                }
+		            }
+	
+		            self.objects.push(o);
+		            if (!self.looping) { 
+		                self.looping = true;
+		                self.eventLoop.call(self);
+		            }
+		        }, o.delay * 1000);
+		    },
+		    eventLoop: function() {
+		        var now = (new Date() - 0);
+		        for (var i = 0; i < this.objects.length; i++) {
+		            var o = this.objects[i];
+		            var t = now - o.startTime;
+		            var d = o.endTime - o.startTime;
+	
+		            if (t >= d) {
+		                for (var property in o.targetPropeties) {
+		                    var tP = o.targetPropeties[property];
+							o.target[property] = (tP.b + tP.c);
+		                }
+		                this.objects.splice(i, 1);
+	
+		                if (typeof o.onUpdate == 'function') {
+		                    if (o.onUpdateParams) {
+		                        o.onUpdate.apply(o, o.onUpdateParams);
+		                    } else {
+		                        o.onUpdate();
+		                    }
+		                }
+	
+		                if (typeof o.onComplete == 'function') {
+		                    if (o.onCompleteParams) {
+		                        o.onComplete.apply(o, o.onCompleteParams);
+		                    } else {
+		                        o.onComplete();
+		                    }
+		                }
+		            } else {
+		                for (var property in o.targetPropeties) {
+		                    var tP = o.targetPropeties[property];
+		                    o.target[property] = o.easing(t, tP.b, tP.c, d);
+		                }
+	
+		                if (typeof o.onUpdate == 'function') {
+		                    if (o.onUpdateParams) {
+		                        o.onUpdate.apply(o, o.onUpdateParams);
+		                    } else {
+		                        o.onUpdate();
+		                    }
+		                }
+		            }
+		        }
+	
+		        if (this.objects.length > 0) {
+		            var self = this;
+		            setTimeout(function() { self.eventLoop(); }, 1000/o.framerate);
+		        } else {
+		            this.looping = false;
+		        }
+		    }
+		};
+	
+	
+		/*
+		 * Tweener's easing functions (Penner's Easing Equations) porting to JavaScript.
+		 * http://code.google.com/p/tweener/
+		 * 
+		 */
+	
+		var easingFunctions = {
+		    easeNone: function(t, b, c, d) {
+		        return c*t/d + b;
+		    },    
+		    easeInQuad: function(t, b, c, d) {
+		        return c*(t/=d)*t + b;
+		    },    
+		    easeOutQuad: function(t, b, c, d) {
+		        return -c *(t/=d)*(t-2) + b;
+		    },    
+		    easeInOutQuad: function(t, b, c, d) {
+		        if((t/=d/2) < 1) return c/2*t*t + b;
+		        return -c/2 *((--t)*(t-2) - 1) + b;
+		    },    
+		    easeInCubic: function(t, b, c, d) {
+		        return c*(t/=d)*t*t + b;
+		    },    
+		    easeOutCubic: function(t, b, c, d) {
+		        return c*((t=t/d-1)*t*t + 1) + b;
+		    },    
+		    easeInOutCubic: function(t, b, c, d) {
+		        if((t/=d/2) < 1) return c/2*t*t*t + b;
+		        return c/2*((t-=2)*t*t + 2) + b;
+		    },    
+		    easeOutInCubic: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutCubic(t*2, b, c/2, d);
+		        return easingFunctions.easeInCubic((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInQuart: function(t, b, c, d) {
+		        return c*(t/=d)*t*t*t + b;
+		    },    
+		    easeOutQuart: function(t, b, c, d) {
+		        return -c *((t=t/d-1)*t*t*t - 1) + b;
+		    },    
+		    easeInOutQuart: function(t, b, c, d) {
+		        if((t/=d/2) < 1) return c/2*t*t*t*t + b;
+		        return -c/2 *((t-=2)*t*t*t - 2) + b;
+		    },    
+		    easeOutInQuart: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutQuart(t*2, b, c/2, d);
+		        return easingFunctions.easeInQuart((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInQuint: function(t, b, c, d) {
+		        return c*(t/=d)*t*t*t*t + b;
+		    },    
+		    easeOutQuint: function(t, b, c, d) {
+		        return c*((t=t/d-1)*t*t*t*t + 1) + b;
+		    },    
+		    easeInOutQuint: function(t, b, c, d) {
+		        if((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
+		        return c/2*((t-=2)*t*t*t*t + 2) + b;
+		    },    
+		    easeOutInQuint: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutQuint(t*2, b, c/2, d);
+		        return easingFunctions.easeInQuint((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInSine: function(t, b, c, d) {
+		        return -c * Math.cos(t/d *(Math.PI/2)) + c + b;
+		    },    
+		    easeOutSine: function(t, b, c, d) {
+		        return c * Math.sin(t/d *(Math.PI/2)) + b;
+		    },    
+		    easeInOutSine: function(t, b, c, d) {
+		        return -c/2 *(Math.cos(Math.PI*t/d) - 1) + b;
+		    },    
+		    easeOutInSine: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutSine(t*2, b, c/2, d);
+		        return easingFunctions.easeInSine((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInExpo: function(t, b, c, d) {
+		        return(t==0) ? b : c * Math.pow(2, 10 *(t/d - 1)) + b - c * 0.001;
+		    },    
+		    easeOutExpo: function(t, b, c, d) {
+		        return(t==d) ? b+c : c * 1.001 *(-Math.pow(2, -10 * t/d) + 1) + b;
+		    },    
+		    easeInOutExpo: function(t, b, c, d) {
+		        if(t==0) return b;
+		        if(t==d) return b+c;
+		        if((t/=d/2) < 1) return c/2 * Math.pow(2, 10 *(t - 1)) + b - c * 0.0005;
+		        return c/2 * 1.0005 *(-Math.pow(2, -10 * --t) + 2) + b;
+		    },    
+		    easeOutInExpo: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutExpo(t*2, b, c/2, d);
+		        return easingFunctions.easeInExpo((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInCirc: function(t, b, c, d) {
+		        return -c *(Math.sqrt(1 -(t/=d)*t) - 1) + b;
+		    },    
+		    easeOutCirc: function(t, b, c, d) {
+		        return c * Math.sqrt(1 -(t=t/d-1)*t) + b;
+		    },    
+		    easeInOutCirc: function(t, b, c, d) {
+		        if((t/=d/2) < 1) return -c/2 *(Math.sqrt(1 - t*t) - 1) + b;
+		        return c/2 *(Math.sqrt(1 -(t-=2)*t) + 1) + b;
+		    },    
+		    easeOutInCirc: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutCirc(t*2, b, c/2, d);
+		        return easingFunctions.easeInCirc((t*2)-d, b+c/2, c/2, d);
+		    },    
+		    easeInElastic: function(t, b, c, d, a, p) {
+		        var s;
+		        if(t==0) return b;  if((t/=d)==1) return b+c;  if(!p) p=d*.3;
+		        if(!a || a < Math.abs(c)) { a=c; s=p/4; } else s = p/(2*Math.PI) * Math.asin(c/a);
+		        return -(a*Math.pow(2,10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )) + b;
+		    },    
+		    easeOutElastic: function(t, b, c, d, a, p) {
+		        var s;
+		        if(t==0) return b;  if((t/=d)==1) return b+c;  if(!p) p=d*.3;
+		        if(!a || a < Math.abs(c)) { a=c; s=p/4; } else s = p/(2*Math.PI) * Math.asin(c/a);
+		        return(a*Math.pow(2,-10*t) * Math.sin((t*d-s)*(2*Math.PI)/p ) + c + b);
+		    },    
+		    easeInOutElastic: function(t, b, c, d, a, p) {
+		        var s;
+		        if(t==0) return b;  if((t/=d/2)==2) return b+c;  if(!p) p=d*(.3*1.5);
+		        if(!a || a < Math.abs(c)) { a=c; s=p/4; }       else s = p/(2*Math.PI) * Math.asin(c/a);
+		        if(t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )) + b;
+		        return a*Math.pow(2,-10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )*.5 + c + b;
+		    },    
+		    easeOutInElastic: function(t, b, c, d, a, p) {
+		        if(t < d/2) return easingFunctions.easeOutElastic(t*2, b, c/2, d, a, p);
+		        return easingFunctions.easeInElastic((t*2)-d, b+c/2, c/2, d, a, p);
+		    },    
+		    easeInBack: function(t, b, c, d, s) {
+		        if(s == undefined) s = 1.70158;
+		        return c*(t/=d)*t*((s+1)*t - s) + b;
+		    },    
+		    easeOutBack: function(t, b, c, d, s) {
+		        if(s == undefined) s = 1.70158;
+		        return c*((t=t/d-1)*t*((s+1)*t + s) + 1) + b;
+		    },    
+		    easeInOutBack: function(t, b, c, d, s) {
+		        if(s == undefined) s = 1.70158;
+		        if((t/=d/2) < 1) return c/2*(t*t*(((s*=(1.525))+1)*t - s)) + b;
+		        return c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
+		    },    
+		    easeOutInBack: function(t, b, c, d, s) {
+		        if(t < d/2) return easingFunctions.easeOutBack(t*2, b, c/2, d, s);
+		        return easingFunctions.easeInBack((t*2)-d, b+c/2, c/2, d, s);
+		    },    
+		    easeInBounce: function(t, b, c, d) {
+		        return c - easingFunctions.easeOutBounce(d-t, 0, c, d) + b;
+		    },    
+		    easeOutBounce: function(t, b, c, d) {
+		        if((t/=d) <(1/2.75)) {
+		            return c*(7.5625*t*t) + b;
+		        } else if(t <(2/2.75)) {
+		            return c*(7.5625*(t-=(1.5/2.75))*t + .75) + b;
+		        } else if(t <(2.5/2.75)) {
+		            return c*(7.5625*(t-=(2.25/2.75))*t + .9375) + b;
+		        } else {
+		            return c*(7.5625*(t-=(2.625/2.75))*t + .984375) + b;
+		        }
+		    },    
+		    easeInOutBounce: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeInBounce(t*2, 0, c, d) * .5 + b;
+		        else return easingFunctions.easeOutBounce(t*2-d, 0, c, d) * .5 + c*.5 + b;
+		    },    
+		    easeOutInBounce: function(t, b, c, d) {
+		        if(t < d/2) return easingFunctions.easeOutBounce(t*2, b, c/2, d);
+		        return easingFunctions.easeInBounce((t*2)-d, b+c/2, c/2, d);
+		    }
+		};
+		easingFunctions.linear = easingFunctions.easeNone;
+	
+		// End of (c) Yuichi Tateno
 		
-		context.lineWidth = this.stroke.width;
-		context.lineCap = this.stroke.cap;
-		context.lineJoin = this.stroke.join;
-		context.shadowOffsetX = this.shadow.x;
-		context.shadowOffsetY = this.shadow.y;  
-		context.shadowBlur = this.shadow.blur;
 		
-		context.strokeStyle = this.stroke.color;
-		context.shadowColor = this.shadow.color;
-		if (this.fill instanceof Canvas.Palette.Gradient || 
-			this.fill instanceof Canvas.Palette.Radial || 
-			this.fill instanceof Canvas.Palette.Pattern){
-				context.fillStyle = this.fill.draw([this], context);
-		} else {
-			context.fillStyle = this.fill;
-		}
+		/**
+		 * Animate an object's properties by a tweening
+		 * @function {static void} Palette.Object.tween
+		 * @param {Object} options An object containing parameters that define the behavior of the tween.
+		 * @... {optional Number} time The duration in seconds of the tween. Defaults to 1.
+		 * @... {optional String} transition The name of the tween to use. Valid values are "linear", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic", "easeInOutCubic", "easeOutInCubic", "easeInQuart", "easeOutQuart", "easeInOutQuart", "easeOutInQuart", "easeInQuint", "easeOutQuint", "easeInOutQuint", "easeOutInQuint", "easeInSine", "easeOutSine", "easeInOutSine", "easeOutInSine", "easeInExpo", "easeOutExpo", "easeInOutExpo", "easeOutInExpo", "easeInCirc", "easeOutCirc", "easeInOutCirc", "easeOutInCirc", "easeInElastic", "easeOutElastic", "easeInOutElastic", "easeOutInElastic", "easeInBack", "easeOutBack", "easeInOutBack", "easeOutInBack", "easeInBounce", "easeOutBounce", "easeInOutBounce", "easeOutInBounce". Default it "linear". 
+		 * @... {optional Number} delay A delay in seconds before the tween begins.
+		 * @... {optional Function} onComplete A function called on completion of the tween.
+		 * @... {optional Object} onCompleteParams A custom object to be passed as a second argument to the onComplete function. The first argument is an object that describes the tween.
+		 * @... {optional Function} onUpdate A function called on a each frame of the animation.
+		 * @... {optional Object} onUpdateParams A custom object to be passed as a second argument to the onUpdate function. The first argument is an object that describes the tween.
+		 * @... {optional Function} onStart A function called on start of the tween.
+		 * @... {optional Object} onStartParams A custom object to be passed as a second argument to the onStart function. The first argument is an object that describes the tween.
+		 * @... {Number} prop1 A property to be tweened and it's destination value e.g. to tween the property x to 10 pass the argument x:0
+		 * @... {optional Number} propN (Any number of properties may be passed.)
+		 * @return Nothing
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.tween = function(args){
+			Tweener.doTween(this, args);
+		};
 		
-		context.globalAlpha = this.alpha * (1/100);
-		for (var sender in senders)
-			if (senders[sender].alpha) 
-				context.globalAlpha *= senders[sender].alpha * (1/100);
-		
-		if (this instanceof Canvas.Palette.Text){
-			context.font = this.font;
-			context.textAlign = this.align;
-			context.textBaseline = this.baseline;
-		}
+		this.fadeOut = function(seconds){
+			if (seconds != undefined && isNaN(seconds)) return;
+			Tweener.doTween(this, {alpha:0});
+		};
+		this.fadeIn = function(seconds){
+			if (seconds != undefined && isNaN(seconds)) return;
+			Tweener.doTween(this, {alpha:100});
+		};
 	};
 	
 	
 	/**
-	 * Returns a deep copy of the object.
-	 * @function {public void} Palette.Object.copy
-	 * @return A deep copy of the object.
+	 * Creates a Line.
+	 * @constructor {public} Palette.Line
+	 * @param {Number} x1 The x coordinate of the first point in the Line in pixels.
+	 * @param {Number} y1 The y coordinate of the first point in the Line in pixels.
+	 * @param {Number} x2 The x coordinate of the second point in the Line in pixels.
+	 * @param {Number} y2 The y coordinate of the second point in the Line in pixels.
+	 * @extends Palette.Object
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.copy = function(obj){
-		var obj2;
-		if (obj == null) {
-			obj = this;
-			// create new object
-			if (this instanceof Canvas.Palette.Line) obj2 = new Canvas.Palette.Line();
-			else if (this instanceof Canvas.Palette.Polygon) obj2 = new Canvas.Palette.Polygon();
-			else if (this instanceof Canvas.Palette.Rectangle) obj2 = new Canvas.Palette.Rectangle();
-			else if (this instanceof Canvas.Palette.Circle) { obj2 = new Canvas.Palette.Circle(); }
-			else if (this instanceof Canvas.Palette.Arc) obj2 = new Canvas.Palette.Arc();
-			else if (this instanceof Canvas.Palette.Bezier) obj2 = new Canvas.Palette.Bezier();
-			else if (this instanceof Canvas.Palette.Quadratic) obj2 = new Canvas.Palette.Quadratic();
-			else if (this instanceof Canvas.Palette.Image) obj2 = new Canvas.Palette.Image();
-			else if (this instanceof Canvas.Palette.Audio) obj2 = new Canvas.Palette.Audio();
-			else if (this instanceof Canvas.Palette.Video) obj2 = new Canvas.Palette.Video();
-			else if (this instanceof Canvas.Palette.Text) obj2 = new Canvas.Palette.Text();
-			else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Group();
-			else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Procedure();
-			else return undefined; // uh-oh!
-		} else {
-			if (obj instanceof Array) obj2 = new Array();
-			else if (obj instanceof Canvas.Palette.Gradient) obj2 = new Canvas.Palette.Gradient();
-			else if (obj instanceof Canvas.Palette.Radial) obj2 = new Canvas.Palette.Radial();
-			else if (obj instanceof Canvas.Palette.Pattern) obj2 = new Canvas.Palette.Pattern();
-			else if (obj instanceof Canvas.Palette.Mask) obj2 = new Canvas.Palette.Mask();
-			else if (obj instanceof Canvas.Palette.HitArea) obj2 = new Canvas.Palette.HitArea();
-			else if (obj && obj.constructor == Object) obj2 = new Object();
-			else return obj; // all other types we return as references
-		}
+	Canvas.Palette.Line = function (x1, y1, x2, y2){
+		if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return false; // catch errors
 
-		for (var prop in obj) {
-			obj2[prop] = this.copy(obj[prop]);
-		}
+		Canvas.Utils.inherit(this, new baseObject());
 		
-		return obj2;
-	};
-	
-	this.isMaskingObject = function(senders){
-		for (var i=0; i<senders.length; i++)
-			if (senders[i] instanceof Canvas.Palette.Mask) return true;
-		return false;
-	};
-	
-	this.beforeDrawObject = function(x, y, senders, context, trace){
-		if (!this.isMaskingObject(senders)) {
-			if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug !== true) {
-				// must be rendered after object in debug mode so we can see it 
-				context.save();
-				context.translate(x, y);
-				this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
-				context.translate(-x, -y);
-			}
-			this.setStyle(senders, context); // restore the style parameters
-		}
-	
-		// translate
-		context.translate(x, y);
-		// rotate
-		context.rotate(this.rotation * Math.PI/180);
-		// scale and skew
-		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
-	};
-	
-	this.afterDrawObject = function(x, y, senders, context, trace){
-		if (this.hitArea instanceof Canvas.Palette.HitArea && (trace || Canvas.debug === true)){
-			this.hitArea.draw(Canvas.Utils.pushArray(senders, this), context, trace);
-		}
-
-		// reverse the transformations in series
-		context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
-		context.rotate(this.rotation * -Math.PI/180);
-		context.translate(x, y);
-
-		// must be rendered after object in debug mode so we can see it 
-		if (!this.isMaskingObject(senders)) {
-			if (this.mask instanceof Canvas.Palette.Mask && Canvas.debug === true) {
-				context.save();
-				context.translate(-x, -y);
-				this.mask.draw(Canvas.Utils.pushArray(senders, this), context, trace);
-				context.translate(x, y);
-			}
-
-			if (this.mask instanceof Canvas.Palette.Mask) context.restore();
-		}
-	};
-};
-
-
-/**
- * Creates a Line.
- * @constructor {public} Palette.Line
- * @param {Number} x1 The x coordinate of the first point in the Line in pixels.
- * @param {Number} y1 The y coordinate of the first point in the Line in pixels.
- * @param {Number} x2 The x coordinate of the second point in the Line in pixels.
- * @param {Number} y2 The y coordinate of the second point in the Line in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Line = function (x1, y1, x2, y2, trace){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-	
-	if ((x1 && y1 && x2 && y2) != undefined){
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
 		this.y2 = y2;
-		
+	
 		// The private draw function
 		this.draw = function(senders, context, trace){
-			this.beforeDrawObject(this.x1+this.pivot.x, this.y1+this.pivot.y, senders, context, trace);
+			this.beforeDrawObject(this.x1+this.pivotx, this.y1+this.pivoty, senders, context, trace);
 			
 			if (trace) {
 				var radians = Math.abs(Math.atan2(this.x2-this.x1, this.y2-this.y1));
-				var x1 = (this.stroke.width) * Math.cos(radians* 180/Math.PI); // width is not divided two here to fit the stroke better
-				var y1 = (this.stroke.width/2) * Math.sin(radians* 180/Math.PI);
-
+				var x1 = (this.strokeWidth) * Math.cos(radians* 180/Math.PI); // width is not divided two here to fit the stroke better
+				var y1 = (this.strokeWidth/2) * Math.sin(radians* 180/Math.PI);
+	
 				context.strokeStyle = "transparent";
 				context.beginPath();
-				context.moveTo((0-this.pivot.x)-x1, (0-this.pivot.y)-y1);
-				context.lineTo(((this.x2-this.x1)-this.pivot.x)-x1, ((this.y2-this.y1)-this.pivot.y)+y1);
-				context.lineTo(((this.x2-this.x1)-this.pivot.x)+x1, ((this.y2-this.y1)-this.pivot.y)+y1);
-				context.lineTo((0-this.pivot.x)+x1, (0-this.pivot.y)-y1);
+				context.moveTo((0-this.pivotx)-x1, (0-this.pivoty)-y1);
+				context.lineTo(((this.x2-this.x1)-this.pivotx)-x1, ((this.y2-this.y1)-this.pivoty)+y1);
+				context.lineTo(((this.x2-this.x1)-this.pivotx)+x1, ((this.y2-this.y1)-this.pivoty)+y1);
+				context.lineTo((0-this.pivotx)+x1, (0-this.pivoty)-y1);
 				context.closePath();
 			} else {
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
-				context.moveTo(-this.pivot.x, -this.pivot.y);
-				context.lineTo((this.x2-this.x1)-this.pivot.x, (this.y2-this.y1)-this.pivot.y);
+				context.moveTo(-this.pivotx, -this.pivoty);
+				context.lineTo((this.x2-this.x1)-this.pivotx, (this.y2-this.y1)-this.pivoty);
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
 			
-			this.afterDrawObject(-(this.x1+this.pivot.x), -(this.y1+this.pivot.y), senders, context, trace);
+			this.afterDrawObject(-(this.x1+this.pivotx), -(this.y1+this.pivoty), senders, context, trace);
 		};
 		
-		this.origin = function(){
-			return {x:this.x1, y:this.y1};
-		};
-	}
-};
-
-
-/**
- * Creates a Polygon.
- * @constructor {public} Palette.Polygon
- * @param {optional Number} x The x coordinate of the first point in the Line in pixels.
- * @param {optional Number} y The y coordinate of the first point in the Line in pixels.
- * @param {optional Number} ... Any number of pairs of x, y coordinates
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Polygon = function (){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+		return true;
+	};
 	
-	if (arguments.length%2 == 0){
+	
+	/**
+	 * Creates a Polygon.
+	 * @constructor {public} Palette.Polygon
+	 * @param {optional Number} x The x coordinate of the first point in the Line in pixels.
+	 * @param {optional Number} y The y coordinate of the first point in the Line in pixels.
+	 * @param {optional Number} n1 ... Any number of pairs of x, y coordinates
+	 * @param {optional Number} n2 ... Any number of pairs of x, y coordinates
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Polygon = function (){
+		if (arguments.length%2 != 0) return false;
+		for (var n in arguments)
+			if (isNaN(arguments[n])) return false; // error catching
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.points = new Array();
 		this.addPoint = function(x, y){
 			var point = new Object();
@@ -1820,12 +2257,12 @@ Canvas.Palette.Polygon = function (){
 		this.draw = function(senders, context, trace){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 			
-			this.beforeDrawObject(this.points[0].x+this.pivot.x, this.points[0].y+this.pivot.y, senders, context, trace);
-
+			this.beforeDrawObject(this.points[0].x+this.pivotx, this.points[0].y+this.pivoty, senders, context, trace);
+	
 			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
-			context.moveTo(-this.pivot.x, -this.pivot.y);
+			context.moveTo(-this.pivotx, -this.pivoty);
 			for (var i=1; i<this.points.length; i++)
-				context.lineTo((this.points[i].x-this.points[0].x)-this.pivot.x, (this.points[i].y-this.points[0].y)-this.pivot.y);
+				context.lineTo((this.points[i].x-this.points[0].x)-this.pivotx, (this.points[i].y-this.points[0].y)-this.pivoty);
 			if (trace){
 				context.closePath();
 			} else {
@@ -1834,31 +2271,30 @@ Canvas.Palette.Polygon = function (){
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
-
-			this.afterDrawObject(-(this.points[0].x+this.pivot.x), -(this.points[0].y+this.pivot.y), senders, context, trace);
+	
+			this.afterDrawObject(-(this.points[0].x+this.pivotx), -(this.points[0].y+this.pivoty), senders, context, trace);
 		};
 		
-		this.origin = function(){
-			return {x:this.points[0].x, y:this.points[0].y};
-		};
-	}
-};
-
-
-/**
- * Creates a Rectangle.
- * @constructor {public} Palette.Rectangle
- * @param {Number} x The x coordinate of the top left corder of the Rectangle in pixels.
- * @param {Number} y The x coordinate of the top left corder of the Rectangle in pixels.
- * @param {Number} width The width of the Rectangle in pixels.
- * @param {Number} height The height of the Rectangle in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Rectangle = function(x, y, width, height){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x && y && width && height) != undefined){
+		return true;
+	};
+	
+	
+	/**
+	 * Creates a Rectangle.
+	 * @constructor {public} Palette.Rectangle
+	 * @param {Number} x The x coordinate of the top left corder of the Rectangle in pixels.
+	 * @param {Number} y The x coordinate of the top left corder of the Rectangle in pixels.
+	 * @param {Number} width The width of the Rectangle in pixels.
+	 * @param {Number} height The height of the Rectangle in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Rectangle = function(x, y, width, height){
+		if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -1867,55 +2303,58 @@ Canvas.Palette.Rectangle = function(x, y, width, height){
 		this.draw = function(senders, context, trace){
 			var w2 = this.width/2;
 			var h2 = this.height/2;
-			var o_x = this.x + w2 + this.pivot.x;
-			var o_y = this.y + h2 + this.pivot.y;
-
+			var o_x = this.x + w2 + this.pivotx;
+			var o_y = this.y + h2 + this.pivoty;
+	
 			this.beforeDrawObject(o_x, o_y, senders, context, trace);
-
+	
 			if (trace){
 				context.strokeStyle = "transparent";
 				context.beginPath();
-				context.moveTo(-(w2+this.pivot.x), -(h2+this.pivot.y));
-				context.lineTo((w2+this.pivot.x), -(h2+this.pivot.y));
-				context.lineTo((w2+this.pivot.x), (h2+this.pivot.y));
-				context.lineTo(-(w2+this.pivot.x), (h2+this.pivot.y));
+				context.moveTo(-(w2+this.pivotx), -(h2+this.pivoty));
+				context.lineTo((w2+this.pivotx), -(h2+this.pivoty));
+				context.lineTo((w2+this.pivotx), (h2+this.pivoty));
+				context.lineTo(-(w2+this.pivotx), (h2+this.pivoty));
 				context.closePath();
 			} else {
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
-				context.fillRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
+				context.fillRect(-(w2+this.pivotx), -(h2+this.pivoty), this.width, this.height);
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-				context.strokeRect(-(w2+this.pivot.x), -(h2+this.pivot.y), this.width, this.height);
+				context.strokeRect(-(w2+this.pivotx), -(h2+this.pivoty), this.width, this.height);
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
-
+	
 			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
 		};
-	}
-};
-
-
-/**
- * Creates a Circle.
- * @constructor {public} Palette.Circle
- * @param {Number} x The x coordinate of the centre point the Circle in pixels.
- * @param {Number} y The y coordinate of the centre point the Circle in pixels.
- * @param {Number} radius The radius of the circle in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Circle = function(x, y, radius){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+		
+		return true;
+	};
 	
-	if ((x && y && radius) != undefined){
+	
+	/**
+	 * Creates a Circle.
+	 * @constructor {public} Palette.Circle
+	 * @param {Number} x The x coordinate of the centre point the Circle in pixels.
+	 * @param {Number} y The y coordinate of the centre point the Circle in pixels.
+	 * @param {Number} radius The radius of the circle in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Circle = function(x, y, radius){
+		if (isNaN(x) || isNaN(y) || isNaN(radius)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+		
 		this.x = x;
 		this.y = y;
 		this.radius = radius;
-
+	
 		this.draw = function(senders, context, trace){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
+			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
 			
 			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
-			context.arc(-this.pivot.x, -this.pivot.y, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
+			context.arc(-this.pivotx, -this.pivoty, this.radius, this.start, this.end * Math.PI/180, this.clockwise);
 			if (trace) {
 				context.closePath();
 			} else {
@@ -1925,33 +2364,32 @@ Canvas.Palette.Circle = function(x, y, radius){
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+			this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
 		};
 		
-		this.origin = function(){
-			return {x:this.x, y:this.y};
-		};
-	}
-};
-
-
-/**
- * Creates an Arc. An Arc is defined by two intersecting lines defined by three co-ordinates. These are one points from each line and the point of intersection of the two lines. A portion of a circle of a defined radious is drawn that is tangental to two lines. The Arc is completed by two lines running  along each lines from the points of tangent to the point given from each line.
- * @constructor {public} Palette.Arc
- * @param {Number} x1 The x coordinate of a point on the first line in pixels.
- * @param {Number} y1 The y coordinate of a point on the first line in pixels.
- * @param {Number} x2 The x coordinate of the point where the first and second line intersect in pixels.
- * @param {Number} y2 The x coordinate of the point where the first and second line intersect in pixels.
- * @param {Number} x3 The x coordinate of a point on the second line in pixels.
- * @param {Number} y3 The y coordinate of a point on the second line in pixels.
- * @param {Number} radius The radius of the circle that forms the arc in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x1 && y1 && x2 && y2 && x3 && y3 && radius) != undefined){
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an Arc. An Arc is defined by two intersecting lines defined by three co-ordinates. These are one points from each line and the point of intersection of the two lines. A portion of a circle of a defined radious is drawn that is tangental to two lines. The Arc is completed by two lines running  along each lines from the points of tangent to the point given from each line.
+	 * @constructor {public} Palette.Arc
+	 * @param {Number} x1 The x coordinate of a point on the first line in pixels.
+	 * @param {Number} y1 The y coordinate of a point on the first line in pixels.
+	 * @param {Number} x2 The x coordinate of the point where the first and second line intersect in pixels.
+	 * @param {Number} y2 The x coordinate of the point where the first and second line intersect in pixels.
+	 * @param {Number} x3 The x coordinate of a point on the second line in pixels.
+	 * @param {Number} y3 The y coordinate of a point on the second line in pixels.
+	 * @param {Number} radius The radius of the circle that forms the arc in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
+		if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2) || isNaN(x3) || isNaN(y3) || isNaN(radius)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
@@ -1961,8 +2399,8 @@ Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
 		this.radius = radius;
 		
 		this.draw = function(senders, context, trace){
-			var o_x = (this.x1 + this.x3)/2 + this.pivot.x;
-			var o_y = (this.y1 + this.y3)/2 + this.pivot.y;
+			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
 			
 			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
@@ -1978,37 +2416,34 @@ Canvas.Palette.Arc = function(x1, y1, x2, y2, x3, y3, radius){
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
-
+	
 			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
 		};
 		
-		this.origin = function(){
-			var x = (this.x1 + this.x3)/2 + this.pivot.x;
-			var y = (this.y1 + this.y3)/2 + this.pivot.y;
-			return {x:x, y:y};
-		};
-	}
-};
-
-
-/**
- * Creates an cubic BŽzier curve.
- * @constructor {public} Palette.Bezier
- * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
- * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
- * @param {Number} x2 The x coordinate of the end point of the curve in pixels.
- * @param {Number} y2 The y coordinate of the end point of the curve in pixels.
- * @param {Number} c_x1 The x coordinate of the first control point of the curve in pixels.
- * @param {Number} c_y1 The y coordinate of the first control point of the curve in pixels.
- * @param {Number} c_x2 The x coordinate of the second control point of the curve in pixels.
- * @param {Number} c_y2 The y coordinate of the second control point of the curve in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x1 && y1 && x2 && y2 && c_x1 && c_y1 && c_x2 && c_y2) != undefined){
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an cubic BŽzier curve.
+	 * @constructor {public} Palette.Bezier
+	 * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
+	 * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
+	 * @param {Number} x2 The x coordinate of the end point of the curve in pixels.
+	 * @param {Number} y2 The y coordinate of the end point of the curve in pixels.
+	 * @param {Number} c_x1 The x coordinate of the first control point of the curve in pixels.
+	 * @param {Number} c_y1 The y coordinate of the first control point of the curve in pixels.
+	 * @param {Number} c_x2 The x coordinate of the second control point of the curve in pixels.
+	 * @param {Number} c_y2 The y coordinate of the second control point of the curve in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
+		if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2) || isNaN(c_x1) || isNaN(c_y1) || isNaN(c_x2) || isNaN(c_y2)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
@@ -2019,8 +2454,8 @@ Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
 		this.c_y2 = c_y2;
 		
 		this.draw = function(senders, context, trace){
-			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
-			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
+			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
 			
 			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
@@ -2035,37 +2470,32 @@ Canvas.Palette.Bezier = function(x1, y1, x2, y2, c_x1, c_y1, c_x2, c_y2){
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
-
+	
 			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
 		};
 		
-		this.origin = function(){
-			var x = (this.x1 + this.x2)/2 + this.pivot.x;
-			var y = (this.y1 + this.y2)/2 + this.pivot.y;
-			return {x:x, y:y};
-		};
-	}
-};
-
-
-/**
- * Creates an quadratic BŽzier curve.
- * @constructor {public} Palette.Quadratic
- * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
- * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
- * @param {Number} x2 The x coordinate of the end point of the curve in pixels.
- * @param {Number} y2 The y coordinate of the end point of the curve in pixels.
- * @param {Number} c_x1 The x coordinate of the first control point of the curve in pixels.
- * @param {Number} c_y1 The y coordinate of the first control point of the curve in pixels.
- * @param {Number} c_x2 The x coordinate of the second control point of the curve in pixels.
- * @param {Number} c_y2 The y coordinate of the second control point of the curve in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x1 && y1 && x2 && y2 && c_x && c_y) != undefined){
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an quadratic BŽzier curve.
+	 * @constructor {public} Palette.Quadratic
+	 * @param {Number} x1 The x coordinate of the start point of the curve in pixels.
+	 * @param {Number} y1 The y coordinate of the start point of the curve in pixels.
+	 * @param {Number} x2 The x coordinate of the end point of the curve in pixels.
+	 * @param {Number} y2 The y coordinate of the end point of the curve in pixels.
+	 * @param {Number} c_x The x coordinate of the first control point of the curve in pixels.
+	 * @param {Number} c_y The y coordinate of the first control point of the curve in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
+		if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2) || isNaN(c_x) || isNaN(c_y)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
@@ -2074,8 +2504,8 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 		this.c_y = c_y;
 		
 		this.draw = function(senders, context, trace){
-			var o_x = (this.x1 + this.x2)/2 + this.pivot.x;
-			var o_y = (this.y1 + this.y2)/2 + this.pivot.y;
+			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
 			
 			this.beforeDrawObject(o_x, o_y, senders, context, trace);
 			
@@ -2094,34 +2524,33 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 			this.afterDrawObject(-o_x, -o_y, senders, context, trace);
 		};
 		
-		this.origin = function(){
-			var x = (this.x1 + this.x2)/2 + this.pivot.x;
-			var y = (this.y1 + this.y2)/2 + this.pivot.y;
-			return {x:x, y:y};
-		};
-	}
-};
-
-
-/**
- * Creates an Image from a source file (.png, .gif, .svg, .jpg, etc.).
- * @constructor {public} Palette.Image
- * @param {Number} x The x coordinate of the top-left corder of the image in pixels.
- * @param {Number} y The y coordinate of the top-left corder of the image in pixels.
- * @param {String} src A URL to the source file for the image.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Image = function(x, y, src){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if (!isNaN(x) && !isNaN(y) 
-		&& (typeof src == "string" || (typeof src == "object" && src.constructor == document.createElement("img").constructor))){
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an Image from a source file (.png, .gif, .svg, .jpg, etc.).
+	 * @constructor {public} Palette.Image
+	 * @param {Number} x The x coordinate of the top-left corder of the image in pixels.
+	 * @param {Number} y The y coordinate of the top-left corder of the image in pixels.
+	 * @param {String} src A URL to the source file for the image.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Image = function(x, y, src){
+		if (isNaN(x) || isNaN(y) || (typeof src != "string" && (typeof src == "object" && src.constructor != document.createElement("img").constructor))) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x = x;
 		this.y = y;
 		var image = src;
 		if (typeof src == "string") image = Canvas.Library.addImage(src);
 		var _image = image;
+		
+		this.imageEffectsLibrary = Canvas.defaultImageEffectsLibrary; // the default FX library can be over ridden
+	
 		
 		/**
 		 * If an effects library is included on the web page, Canvas API can add effects to images using that library. Currently only the Pixastic library is supported.
@@ -2160,54 +2589,52 @@ Canvas.Palette.Image = function(x, y, src){
 				}
 			}
 			
-			
-			if (this.clip.width == undefined) 
-				if (_image.naturalWidth) this.clip.width = _image.naturalWidth - this.clip.x;
-				else if (_image.width) this.clip.width = _image.width - this.clip.x; // Opera
+			if (this.clipWidth == undefined) 
+				if (_image.naturalWidth) this.clipWidth = _image.naturalWidth - this.clipx;
+				else if (_image.width) this.clipWidth = _image.width - this.clipx; // Opera
 				else return false; // would cause an error
-			if (this.clip.height == undefined) 
-				if (_image.naturalHeight) this.clip.height = _image.naturalHeight - this.clip.y;
-				else if (_image.height) this.clip.height = _image.height - this.clip.y; // Opera
+			if (this.clipHeight == undefined) 
+				if (_image.naturalHeight) this.clipHeight = _image.naturalHeight - this.clipy;
+				else if (_image.height) this.clipHeight = _image.height - this.clipy; // Opera
 				else return false; // would cause an error
 			
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
-
+			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
+	
 			if (trace) {
 				context.strokeStyle = "transparent";
 				context.beginPath();
-				context.moveTo(-this.pivot.x, -this.pivot.y);
-				context.lineTo(this.clip.width-this.pivot.x, 0-this.pivot.y);
-				context.lineTo(this.clip.width-this.pivot.x, this.clip.height-this.pivot.y);
-				context.lineTo(0-this.pivot.x, this.clip.height-this.pivot.y);
+				context.moveTo(-this.pivotx, -this.pivoty);
+				context.lineTo(this.clipWidth-this.pivotx, 0-this.pivoty);
+				context.lineTo(this.clipWidth-this.pivotx, this.clipHeight-this.pivoty);
+				context.lineTo(0-this.pivotx, this.clipHeight-this.pivoty);
 				context.closePath();
 			} else {
-				context.drawImage(_image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+				context.drawImage(_image, this.clipx, this.clipy, this.clipWidth, this.clipHeight, -this.pivotx, -this.pivoty, this.clipWidth, this.clipHeight);
 			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+			this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
 		};
 		
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an Audio object from a source file (.ogg, .mp3, .wav, etc.).
+	 * @constructor {public} Palette.Audio
+	 * @param {String or Array} src A URL to the source file for the audio or an array of strings of URLs to the audio. It is recommended to provide an array of URLs to the same audio in different formats since different browsers support different audio formats.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Audio = function(src){
+		if (typeof src != "string" || (typeof src == "object" && src.constructor != Array)) return false; // catch errors
+		if (typeof src != "string") for (var n in src) if (typeof src[n] != "string") return false; // error catching
 		
-		this.origin = function(){
-			return {x:this.x, y:this.y};
-		};
-	}
-};
-
-
-/**
- * Creates an Audio object from a source file (.ogg, .mp3, .wav, etc.).
- * @constructor {public} Palette.Audio
- * @param {String or Array} src A URL to the source file for the audio or an array of strings of URLs to the audio. It is recommended to provide an array of URLs to the same audio in different formats since different browsers support different audio formats.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Audio = function(src){
-	if (!document.createElement("audio").play) return false; // unsupported by Camino
-
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((src) != undefined){
+		if (!document.createElement("audio").play) return false; // unsupported by Camino
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.audio = Canvas.Library.addAudio(src);
 		
 		this.play = function(){
@@ -2234,107 +2661,103 @@ Canvas.Palette.Audio = function(src){
 			// an empty function solely to allow object this to be added to scenes
 		};
 		
-		this.origin = function(){
-			return {x:0, y:0};
-		};
-
-	}
-};
-
-
-/**
- * Creates a Video object from a source file (.ogg, .mov, .mpg, etc.).
- * @constructor {public} Palette.Video
- * @param {Number} x The x coordinate of the top-left corder of the video in pixels.
- * @param {Number} y The y coordinate of the top-left corder of the video in pixels.
- * @param {String or Array} src A URL to the source file for the video or an array of strings of URLs to the video. It is recommended to provide an array of URLs to the same video in different formats since different browsers support different video formats.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Video = function(x, y, src){
-	if (!document.createElement("video").play) return false; // unsupported by Camino
+		return true;
+	};
 	
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x && y && src) != undefined){
-		this.x = x;
-		this.y = y;
-		this.video = Canvas.Library.addVideo(src);
-
-		this.play = function(){
-			this.video.play();
-		};
-		this.stop = function(){
-			this.video.pause();
-			this.video.currentTime = 0;
-		};
-		this.pause = function(){
-			this.video.pause();
-		};
-		this.setTime = function(time){
-			this.video.currentTime = 0;
-		};
-		this.setVolume = function(volume){
-			this.video.volume = volume/100;
-		};
-		this.getDuration = function(){
-			return this.video.duration;
-		};
+	
+	/**
+	 * Creates a Video object from a source file (.ogg, .mov, .mpg, etc.).
+	 * @constructor {public} Palette.Video
+	 * @param {Number} x The x coordinate of the top-left corder of the video in pixels.
+	 * @param {Number} y The y coordinate of the top-left corder of the video in pixels.
+	 * @param {String or Array} src A URL to the source file for the video or an array of strings of URLs to the video. It is recommended to provide an array of URLs to the same video in different formats since different browsers support different video formats.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Video = function(x, y, src){
+		if (isNaN(x) || isNaN(y) || (typeof src != "string" && (typeof src == "object" && src.constructor != Array))) return false; // catch errors
+		if (typeof src != "string") for (var n in src) if (typeof src[n] != "string") return false; // error catching
+	
+		if (!document.createElement("video").play) return false; // unsupported by Camino
 		
-		this.draw = function(senders, context, trace){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
+		Canvas.Utils.inherit(this, new baseObject());
+	
+		if ((x && y && src) != undefined){
+			this.x = x;
+			this.y = y;
+			this.video = Canvas.Library.addVideo(src);
+	
+			this.play = function(){
+				this.video.play();
+			};
+			this.stop = function(){
+				this.video.pause();
+				this.video.currentTime = 0;
+			};
+			this.pause = function(){
+				this.video.pause();
+			};
+			this.setTime = function(time){
+				this.video.currentTime = 0;
+			};
+			this.setVolume = function(volume){
+				this.video.volume = volume/100;
+			};
+			this.getDuration = function(){
+				return this.video.duration;
+			};
 			
-			if (this.clip.width == undefined) 
-				this.clip.width = this.video.videoWidth - this.clip.x;
-			if (this.clip.height == undefined) 
-				this.clip.height = this.video.videoHeight - this.clip.y;
-			
-			if (trace) {
-				context.strokeStyle = "transparent";
-				context.beginPath();
-				context.moveTo(-this.pivot.x, -this.pivot.y);
-				context.lineTo(this.clip.width-this.pivot.x, 0-this.pivot.y);
-				context.lineTo(this.clip.width-this.pivot.x, this.clip.height-this.pivot.y);
-				context.lineTo(0-this.pivot.x, this.clip.height-this.pivot.y);
-				context.closePath();
-			} else {
-				context.drawImage(this.video, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
-			}
-			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
-		};
+			this.draw = function(senders, context, trace){
+				this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
+				
+				if (this.clipWidth == undefined) 
+					this.clipWidth = this.video.videoWidth - this.clipx;
+				if (this.clipHeight == undefined) 
+					this.clipHeight = this.video.videoHeight - this.clipy;
+				
+				if (trace) {
+					context.strokeStyle = "transparent";
+					context.beginPath();
+					context.moveTo(-this.pivotx, -this.pivoty);
+					context.lineTo(this.clipWidth-this.pivotx, 0-this.pivoty);
+					context.lineTo(this.clipWidth-this.pivotx, this.clipHeight-this.pivoty);
+					context.lineTo(0-this.pivotx, this.clipHeight-this.pivoty);
+					context.closePath();
+				} else {
+					context.drawImage(this.video, this.clipx, this.clipy, this.clipWidth, this.clipHeight, -this.pivotx, -this.pivoty, this.clipWidth, this.clipHeight);
+				}
+				
+				this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
+			};
+		}
 		
-		this.origin = function(){
-			return {x:this.x, y:this.y};
-		};
-	}
-};
-
-
-/**
- * Writes a text string on to the canvas
- * @constructor {public} Palette.Text
- * @param {Number} x The x coordinate of the top-left corder of the image in pixels.
- * @param {Number} y The y coordinate of the top-left corder of the image in pixels.
- * @param {String} src A URL to the source file for the image.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Text = function(x, y, text){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x && y && text) != undefined){
+		return true;
+	};
+	
+	
+	/**
+	 * Writes a text string on to the canvas
+	 * @constructor {public} Palette.Text
+	 * @param {Number} x The x coordinate of the top-left corder of the image in pixels.
+	 * @param {Number} y The y coordinate of the top-left corder of the image in pixels.
+	 * @param {String} src A URL to the source file for the image.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Text = function(x, y, text){
+		if (isNaN(x) || isNaN(y) || typeof text != "string") return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
 		this.x = x;
 		this.y = y;
 		this.text = text;
-		
+	
 		// over ride the default values
-		this.fill = this.stroke.color;
-		this.stroke.color = "transparent";
-		
-		
-		
-		
+		this.fill = this.stroke;
+		this.stroke = "transparent";
 		
 		/**
 		 * Determines the text direction of the canvas tags in a document.
@@ -2360,12 +2783,9 @@ Canvas.Palette.Text = function(x, y, text){
 		};
 		var documentIsLeftToRight = determineDocumentIsLeftToRight();
 		
-		
-		
-		
 		this.draw = function(senders, context, trace){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
-
+			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
+	
 			if (trace) {
 				var attributes = this.font.split(" ");
 				var height;
@@ -2375,10 +2795,10 @@ Canvas.Palette.Text = function(x, y, text){
 						break;
 					}
 				}
-
+	
 				context.strokeStyle = "transparent";
 				context.beginPath();
-
+	
 				// "start", "end", "left", "right", "center"
 				var offsetx = 0;
 				var xdir = +1;
@@ -2409,23 +2829,19 @@ Canvas.Palette.Text = function(x, y, text){
 						break;
 				}
 				
-				context.moveTo(-this.pivot.x+offsetx, -this.pivot.y+offsety);
-				context.lineTo((this.width()-this.pivot.x)*xdir+offsetx, 0-this.pivot.y+offsety);
-				context.lineTo((this.width()-this.pivot.x)*xdir+offsetx, height-this.pivot.y+offsety);
-				context.lineTo((0-this.pivot.x)*xdir+offsetx, height-this.pivot.y+offsety);
+				context.moveTo(-this.pivotx+offsetx, -this.pivoty+offsety);
+				context.lineTo((this.width()-this.pivotx)*xdir+offsetx, 0-this.pivoty+offsety);
+				context.lineTo((this.width()-this.pivotx)*xdir+offsetx, height-this.pivoty+offsety);
+				context.lineTo((0-this.pivotx)*xdir+offsetx, height-this.pivoty+offsety);
 				context.closePath();
 			} else {
 				// stroke and fill text are not supported on Camino
-				if (context.fillText) context.fillText(this.text, -this.pivot.x, -this.pivot.y);
+				if (context.fillText) context.fillText(this.text, -this.pivotx, -this.pivoty);
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-				if (context.strokeText) context.strokeText(this.text, -this.pivot.x, -this.pivot.y);
+				if (context.strokeText) context.strokeText(this.text, -this.pivotx, -this.pivoty);
 			}
 			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
-		};
-		
-		this.origin = function(){
-			return {x:this.x, y:this.y};
+			this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
 		};
 		
 		/**
@@ -2438,254 +2854,262 @@ Canvas.Palette.Text = function(x, y, text){
 	 	this.width = function(){
 	 		// We will use a temporary context since we don't know what context the text is applied to, it makes no difference anyway
 	 		var context = document.createElement("canvas").getContext("2d");
+	
+			context.font = this.font;
+			context.textAlign = this.align;
+			context.textBaseline = this.baseline;
 
-			this.setStyle(null, context); // we don't have senders, for now this isn't a problem 
 			context.scale(this.xscale/100, this.yscale/100);
 			var textMetrics = context.measureText(this.text);
 			context.scale(100/this.xscale, 100/this.yscale);
 			
 			return textMetrics.width;
 		};
-	}
-};
-
-
-/**
- * Creates an group container that contains other palette objects (including other groups).
- * @constructor {public} Palette.Group
- * @param {Number} x The x coordinate of the top-left corder of the group in pixels.
- * @param {Number} y The y coordinate of the top-left corder of the group in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Group = function(x, y){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x && y) != undefined){
-		this.x = x;
-		this.y = y;
-	}
 	
-	
-	this.members = {}; // an object that holds the group's memebrs
-	
-	/**
-	 * Adds a Palette object to the Group.
-	 * @function {public Boolean} Palette.Group
-	 * @param {Object} obj The object to be added
-	 * @param {optional String} name An instance name for the object
-	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
-	 * @return true if the object was added, otherwise false.
-	 * @see Palette.Group.remove
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */	
-	this.add = function(obj, name, copy){
-		// sort out the overloading: 
-		if (name === undefined || typeof name == "boolean") {
-			if (typeof name === "boolean") copy = name;
-			var i = 0;
-			while (this.members["sprite "+i]) i++;
-			name = "sprite "+i;
-		}
-
-		if (!obj || !obj.draw) return false;
-		
-		if (copy) this.members[name] = obj.copy();
-		else this.members[name] = obj;
-		
-		return false;
+		return true;
 	};
 	
+	
 	/**
-	 * Removes a Palette object from the Group.
-	 * @function {public void} Palette.Group.remove
-	 * @return Nothing
-	 * @see Palette.Group.add
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */	
-	this.remove = function(name){
-		delete this.members[name];
-	};
-		
-	/**
-	 * A method to bubble sort the objects in the scene by layer.
-	 * @function {private static void} Palette.Group.membersByLayer
-	 * @param {Array} array The object to bequeath attributes to.
-	 * @return An array containing the objects in the scene.
+	 * Creates an group container that contains other palette objects (including other groups).
+	 * @constructor {public} Palette.Group
+	 * @param {Number} x The x coordinate of the top-left corder of the group in pixels.
+	 * @param {Number} y The y coordinate of the top-left corder of the group in pixels.
+	 * @extends Palette.Object
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.membersByLayer = function() {
-		var array = new Array();
-		for (var obj in this.members) 
-			array.push(this.members[obj]);
+	Canvas.Palette.Group = function(x, y){
+		if (isNaN(x) || isNaN(y)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
+		this.x = x;
+		this.y = y;
 		
-		for(var i = 0; i < array.length; i++) {
-			for(var j = 0; j < (array.length-1); j++) {
-				if(array[j].layer > array[j+1].layer) {
-					var tmp = array[j+1];
-					array[j+1] = array[j];
-					array[j] = tmp;
+		var _members = {}; // an object that holds the group's memebrs
+		
+		/**
+		 * Adds a Palette object to the Group.
+		 * @function {public Boolean} Palette.Group
+		 * @param {Object} obj The object to be added
+		 * @param {optional String} name An instance name for the object
+		 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
+		 * @return true if the object was added, otherwise false.
+		 * @see Palette.Group.remove
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */	
+		this.add = function(obj, name, copy){
+			// sort out the overloading: 
+			if (name === undefined || typeof name == "boolean") {
+				if (typeof name === "boolean") copy = name;
+				var i = 0;
+				while (_members["sprite "+i]) i++;
+				name = "sprite "+i;
+			}
+	
+			if (!obj || !obj.draw) return false;
+			
+			if (copy) _members[name] = obj.copy();
+			else _members[name] = obj;
+			
+			return false;
+		};
+		
+		/**
+		 * Removes a Palette object from the Group.
+		 * @function {public void} Palette.Group.remove
+		 * @return Nothing
+		 * @see Palette.Group.add
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */	
+		this.remove = function(name){
+			delete _members[name];
+		};
+			
+		/**
+		 * A method to bubble sort the objects in the scene by layer.
+		 * @function {private static void} Palette.Group.membersByLayer
+		 * @param {Array} array The object to bequeath attributes to.
+		 * @return An array containing the objects in the scene.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.membersByLayer = function() {
+			var array = new Array();
+			for (var obj in _members) 
+				array.push(_members[obj]);
+			
+			for(var i = 0; i < array.length; i++) {
+				for(var j = 0; j < (array.length-1); j++) {
+					if(array[j].layer > array[j+1].layer) {
+						var tmp = array[j+1];
+						array[j+1] = array[j];
+						array[j] = tmp;
+					}
 				}
 			}
-		}
-		return array;
-	};
-	
-
-	this.draw = function(senders, context, trace){
-		this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
+			return array;
+		};
 		
-		context.translate(-this.pivot.x, -this.pivot.y);
-		// loop through the Group members
-		var layers = this.membersByLayer();
-		for (var i in layers)
-			// we skip this if we are tracing because we don't want to trace the inner objects only ths one
-			if (layers[i] && !trace) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
-		context.translate(this.pivot.x, this.pivot.y);
-		
-		this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
-	};
-	
-	this.origin = function(){
-		return {x:this.x, y:this.y};
-	};
-};
-
-
-/**
- * Creates a mask made up of other palette objects (including other groups).
- * @param {Number} x The x coordinate of the top-left corder of the mask in pixels.
- * @param {Number} y The y coordinate of the top-left corder of the mask in pixels.
- * @constructor {public} Palette.Mask
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Mask = function(x, y){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
-
-	if ((x && y) != undefined){
-		this.x = x;
-		this.y = y;
-	}
-	
-	
-	this.elements = {}; // an object that holds the masks elements
-	
-	/**
-	 * Adds a Palette object to the Group.
-	 * @function {public Boolean} Palette.Group
-	 * @param {Object} obj The object to be added
-	 * @param {optional String} name An instance name for the object
-	 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
-	 * @return true if the object was added, otherwise false.
-	 * @see Palette.Group.remove
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */
-	this.add = function(obj, name, copy){
-		// sort out the overloading: 
-		if (name === undefined || typeof name == "boolean") {
-			if (typeof name === "boolean") copy = name;
-			var i = 0;
-			while (this.elements["sprite "+i]) i++;
-			name = "sprite "+i;
-		}
-		
-		if (!obj || !obj.draw) return false;
-
-		if (copy) this.elements[name] = obj.copy();
-		else this.elements[name] = obj;
+		this.draw = function(senders, context, trace){
+			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
+			
+			context.translate(-this.pivotx, -this.pivoty);
+			// loop through the Group members
+			var layers = this.membersByLayer();
+			for (var i in layers)
+				// we skip this if we are tracing because we don't want to trace the inner objects only ths one
+				if (layers[i] && !trace) layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+			context.translate(this.pivotx, this.pivoty);
+			
+			this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
+		};
 		
 		return true;
 	};
 	
+	
 	/**
-	 * Removes a Palette object from the Group.
-	 * @function {public void} Palette.Group.remove
-	 * @return Nothing
-	 * @see Palette.Group.add
-	 * @author Oliver Moran
-	 * @since 0.2
-	 */	
-	this.remove = function(name){
-		delete this.elements[name];
-	};
-		
-	/**
-	 * A method to bubble sort the objects in the scene by layer.
-	 * @function {private static void} Palette.Group.membersByLayer
-	 * @param {Array} array The object to bequeath attributes to.
-	 * @return An array containing the objects in the scene.
+	 * Creates a mask made up of other palette objects (including other groups).
+	 * @param {Number} x The x coordinate of the top-left corder of the mask in pixels.
+	 * @param {Number} y The y coordinate of the top-left corder of the mask in pixels.
+	 * @constructor {public} Palette.Mask
+	 * @extends Palette.Object
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.elementsByLayer = function() {
-		var array = new Array();
-		for (var obj in this.elements) 
-			array.push(this.elements[obj]);
+	Canvas.Palette.Mask = function(x, y){
+		if (isNaN(x) || isNaN(y)) return false; // catch errors
+	
+		Canvas.Utils.inherit(this, new baseObject());
+	
+		this.x = x;
+		this.y = y;
 		
-		for(var i = 0; i < array.length; i++) {
-			for(var j = 0; j < (array.length-1); j++) {
-				if(array[j].layer > array[j+1].layer) {
-					var tmp = array[j+1];
-					array[j+1] = array[j];
-					array[j] = tmp;
+		var _elements = {}; // an object that holds the masks elements
+		
+		/**
+		 * Adds a Palette object to the Group.
+		 * @function {public Boolean} Palette.Group
+		 * @param {Object} obj The object to be added
+		 * @param {optional String} name An instance name for the object
+		 * @param {optional Boolean} copy Whether to (deep) copy of the object. Defaults to true, otherwise a shallow copy of the object is added to the drawing. 
+		 * @return true if the object was added, otherwise false.
+		 * @see Palette.Group.remove
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.add = function(obj, name, copy){
+			// sort out the overloading: 
+			if (name === undefined || typeof name == "boolean") {
+				if (typeof name === "boolean") copy = name;
+				var i = 0;
+				while (_elements["sprite "+i]) i++;
+				name = "sprite "+i;
+			}
+			
+			if (!obj || !obj.draw) return false;
+	
+			if (copy) _elements[name] = obj.copy();
+			else _elements[name] = obj;
+			
+			return true;
+		};
+		
+		/**
+		 * Removes a Palette object from the Group.
+		 * @function {public void} Palette.Group.remove
+		 * @return Nothing
+		 * @see Palette.Group.add
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */	
+		this.remove = function(name){
+			delete _elements[name];
+		};
+			
+		/**
+		 * A method to bubble sort the objects in the scene by layer.
+		 * @function {private static void} Palette.Group.elementsByLayer
+		 * @param {Array} array The object to bequeath attributes to.
+		 * @return An array containing the objects in the scene.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.elementsByLayer = function() {
+			var array = new Array();
+			for (var obj in _elements) 
+				array.push(_elements[obj]);
+			
+			for(var i = 0; i < array.length; i++) {
+				for(var j = 0; j < (array.length-1); j++) {
+					if(array[j].layer > array[j+1].layer) {
+						var tmp = array[j+1];
+						array[j+1] = array[j];
+						array[j] = tmp;
+					}
 				}
 			}
-		}
-		return array;
-	};
-	
-
-	this.draw = function(senders, context, trace){
-		context.translate(-(this.x+this.pivot.x), -(this.y+this.pivot.y));
-		context.rotate(this.rotation * Math.PI/180);
-		context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
-
-		context.strokeStyle = "transparent";
-		context.shadowColor = "transparent";
-		var alpha = context.globalAlpha;
-		if (Canvas.debug === true) {
-			context.globalAlpha = 1/3;
-			context.fillStyle = "magenta";
-		} else context.fillStyle = "transparent";
+			return array;
+		};
 		
-		if (Canvas.debug !== true) context.beginPath();
-		// loop through the Mask's elements
-		var layers = this.elementsByLayer();
-		for (var i in layers) if (layers[i]) {
-			if (layers[i].draw) {
-				layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+	
+		this.draw = function(senders, context, trace){
+			context.translate(-(this.x+this.pivotx), -(this.y+this.pivoty));
+			context.rotate(this.rotation * Math.PI/180);
+			context.transform(this.xscale/100, (this.xskew * Math.PI/180), (this.yskew * -Math.PI/180), this.yscale/100, 0, 0);
+	
+			context.strokeStyle = "transparent";
+			context.shadowColor = "transparent";
+			var alpha = context.globalAlpha;
+			if (Canvas.debug === true) {
+				context.globalAlpha = 1/3;
+				context.fillStyle = "magenta";
+			} else context.fillStyle = "transparent";
+			
+			if (Canvas.debug !== true) context.beginPath();
+			// loop through the Mask's elements
+			var layers = this.elementsByLayer();
+			for (var i in layers) if (layers[i]) {
+				if (layers[i].draw) {
+					layers[i].draw(Canvas.Utils.pushArray(senders, this), context, trace);
+				}
 			}
-		}
-		if (Canvas.debug !== true) context.clip();
-		
-		context.globalAlpha = alpha;
-
-		// reverse the transformations in series
-		context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
-		context.rotate(this.rotation * -Math.PI/180);
-		context.translate(this.x+this.pivot.x, this.y+this.pivot.y);
-	};
-};
-
-
-/**
- * Creates a hit area.
- * @constructor {public} Palette.hitArea
- * @param {optional Number} x The x coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
- * @param {optional Number} y The y coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
- * @param {optional Number} ... Any number of pairs of x, y coordinates
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.HitArea = function (){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+			if (Canvas.debug !== true) context.clip();
+			
+			context.globalAlpha = alpha;
 	
-	if (arguments.length%2 == 0){
+			// reverse the transformations in series
+			context.transform(100/this.xscale, (this.xskew * -Math.PI/180), (this.yskew * Math.PI/180), 100/this.yscale, 0, 0);
+			context.rotate(this.rotation * -Math.PI/180);
+			context.translate(this.x+this.pivotx, this.y+this.pivoty);
+		};
+		
+		return true;
+	};
+	
+	
+	/**
+	 * Creates a hit area.
+	 * @constructor {public} Palette.hitArea
+	 * @param {optional Number} x The x coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
+	 * @param {optional Number} y The y coordinate of the first point in the outline of the hit area in pixels relative to the origin of the object it will act as hit area for.
+	 * @param {optional Number} n1 ... Any number of pairs of x, y coordinates
+	 * @param {optional Number} n2 ... Any number of pairs of x, y coordinates
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	 Canvas.Palette.HitArea = function (){
+		if (arguments.length%2 != 0) return false;
+		for (var n in arguments)
+			if (isNaN(arguments[n])) return false; // error catching
+	
+		Canvas.Utils.inherit(this, new baseObject());
+		
 		this.points = new Array();
 		this.addPoint = function(x, y){
 			var point = new Object();
@@ -2699,9 +3123,9 @@ Canvas.Palette.HitArea = function (){
 		
 		this.draw = function(senders, context, trace){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
-
-			context.translate(-senders[senders.length-1].pivot.x, -senders[senders.length-1].pivot.y);
-
+	
+			context.translate(-senders[senders.length-1].pivotx, -senders[senders.length-1].pivoty);
+	
 			context.strokeStyle = "transparent";
 			context.shadowColor = "transparent";
 			var alpha = context.globalAlpha;
@@ -2709,9 +3133,9 @@ Canvas.Palette.HitArea = function (){
 			context.fillStyle = "cyan";
 			
 			if (trace || !this.isMaskingObject(senders) || Canvas.debug === true) context.beginPath();
-			context.moveTo(-this.pivot.x, -this.pivot.y);
+			context.moveTo(-this.pivotx, -this.pivoty);
 			for (var i=1; i<this.points.length; i++)
-				context.lineTo((this.points[i].x-this.points[0].x)-this.pivot.x, (this.points[i].y-this.points[0].y)-this.pivot.y);
+				context.lineTo((this.points[i].x-this.points[0].x)-this.pivotx, (this.points[i].y-this.points[0].y)-this.pivoty);
 			if (trace){
 				context.closePath();
 			} else {
@@ -2720,82 +3144,40 @@ Canvas.Palette.HitArea = function (){
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
 				if (!this.isMaskingObject(senders) || Canvas.debug === true) context.stroke();
 			}
-
-			context.globalAlpha = alpha;
-
-			context.translate(senders[senders.length-1].pivot.x, senders[senders.length-1].pivot.y);
-		};
-		
-
-	}
-};
-
-
-/**
- * Creates a Procedure object. This is a special kind of object that calls a user definable function when it is drawn. This object can be used to draw objects using the standard W3C procedural API. Other uses are also possible.
- * @constructor {public} Palette.Procedure
- * @param {Function} procedure A function to be called 
- * @return Nothing.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Procedure = function (procedure){
-	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
 	
-	if (typeof procedure == "function"){
-		this.x = 0;
-		this.y = 0;
-		var _procedure = procedure;
-		
-		this.draw = function(senders, context, trace){
-			if (trace || this.isMaskingObject(senders)) return; // XXX: How should we handle these?
-			
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
-		
-			// just in case
-			context.beginPath();
-			context.closePath();
-			
-			// TODO: Add try...catch and nice error handling should something go wrong in this function
-			_procedure();
-
-			// just in case
-			context.beginPath();
-			context.closePath();
-		
-			
-			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+			context.globalAlpha = alpha;
+	
+			context.translate(senders[senders.length-1].pivotx, senders[senders.length-1].pivoty);
 		};
-		
-		this.origin = function(){
-			return {x:this.x, y:this.y};
-		};
-	}
-};
-
-
-/**
- * Creates an linear gradient for use in fills.
- * @constructor {public} Palette.Gradient
- * @param {Number} x1 The x coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
- * @param {Number} y1 The y coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
- * @param {Number} x2 The x coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
- * @param {Number} y2 The y coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Gradient = function (x1, y1, x2, y2){
-	if ((x1 && y1 && x2 && y2) != undefined){
+			
+		return true;
+	};
+	
+	
+	/**
+	 * Creates an linear gradient for use in fills.
+	 * @constructor {public} Palette.Gradient
+	 * @param {Number} x1 The x coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
+	 * @param {Number} y1 The y coordinate of the start point of the gradient in pixels relative to the origin of the Palette object being filled.
+	 * @param {Number} x2 The x coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
+	 * @param {Number} y2 The y coordinate of the end point of the gradient in pixels relative to the origin of the Palette object being filled.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Gradient = function (x1, y1, x2, y2){
+		if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return false; // error catching
+	
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
 		this.y2 = y2;
 		
 		this.draw = function(senders, context){
-			var x1 = this.x1 - senders[senders.length-1].pivot.x;
-			var y1 = this.y1 - senders[senders.length-1].pivot.y;
-			var x2 = this.x2 - senders[senders.length-1].pivot.x;
-			var y2 = this.y2 - senders[senders.length-1].pivot.y;
+			var x1 = this.x1 - senders[senders.length-1].pivotx;
+			var y1 = this.y1 - senders[senders.length-1].pivoty;
+			var x2 = this.x2 - senders[senders.length-1].pivotx;
+			var y2 = this.y2 - senders[senders.length-1].pivoty;
 			
 			var gradient = context.createLinearGradient(x1, y1, x2, y2);
 			for (var stop in this.stops)
@@ -2803,41 +3185,44 @@ Canvas.Palette.Gradient = function (x1, y1, x2, y2){
 			
 			return gradient;
 		};
-	}
-	
-	this.stops = new Array();
-	this.addStop = function(offset, color){
-		var stop = new Object();
-		stop.offset = offset;
-		stop.color = color;
-		this.stops.push(stop);
+		
+		this.stops = new Array();
+		this.addStop = function(offset, color){
+			var stop = new Object();
+			stop.offset = offset;
+			stop.color = color;
+			this.stops.push(stop);
+		};
+		
+		return true;
 	};
-};
-
-
-/**
- * Creates an radial gradient for use in fills.
- * @constructor {public} Palette.Radial
- * @param {optional Number} x1 The x coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
- * @param {optional Number} y1 The y coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
- * @param {optional Number} radius1 The radius of the starting circle in pixels.
- * @param {optional Number} x2 The x coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
- * @param {optional Number} y2 The y coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
- * @param {Number} radius2 The radius of the ending circle in pixels.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
-	if (x1 != undefined && (y1 && radius1 && x2 && y2 && radius2) == undefined){
-		radius2 = x1;
-		x1 = 0;
-		y1 = 0;
-		x2 = 0;
-		y2 = 0;
-		radius1 = 0;
-	}
 	
-	if ((x1 && y1 && radius1 && x2 && y2 && radius2) != undefined){
+	
+	/**
+	 * Creates an radial gradient for use in fills.
+	 * @constructor {public} Palette.Radial
+	 * @param {optional Number} x1 The x coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
+	 * @param {optional Number} y1 The y coordinate of the centre point of the starting circle in pixels relative to the origin of the Palette object being filled.
+	 * @param {optional Number} radius1 The radius of the starting circle in pixels.
+	 * @param {optional Number} x2 The x coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
+	 * @param {optional Number} y2 The y coordinate of the centre point of the ending circle in pixels relative to the origin of the Palette object being filled.
+	 * @param {Number} radius2 The radius of the ending circle in pixels.
+	 * @extends Palette.Object
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
+		if (!isNaN(x1) && y1 == undefined && radius1 == undefined && x2 == undefined && y2 == undefined && radius2 == undefined){
+			radius2 = x1;
+			x1 = 0;
+			y1 = 0;
+			x2 = 0;
+			y2 = 0;
+			radius1 = 0;
+		} // possible overload
+	
+		if (isNaN(x1) || isNaN(y1) || isNaN(radius1) || isNaN(x2) || isNaN(y2) || isNaN(radius2)) return false; // error catching
+		
 		this.x1 = x1;
 		this.y1 = y1;
 		this.radius1 = radius1;
@@ -2846,10 +3231,10 @@ Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
 		this.radius2 = radius2;
 		
 		this.draw = function(senders, context){
-			var x1 = this.x1 - senders[senders.length-1].pivot.x;
-			var y1 = this.y1 - senders[senders.length-1].pivot.y;
-			var x2 = this.x2 - senders[senders.length-1].pivot.x;
-			var y2 = this.y2 - senders[senders.length-1].pivot.y;
+			var x1 = this.x1 - senders[senders.length-1].pivotx;
+			var y1 = this.y1 - senders[senders.length-1].pivoty;
+			var x2 = this.x2 - senders[senders.length-1].pivotx;
+			var y2 = this.y2 - senders[senders.length-1].pivoty;
 			
 			var gradient = context.createRadialGradient(x1, y1, this.radius1, x2, y2, this.radius2);
 			for (var stop in this.stops)
@@ -2857,408 +3242,54 @@ Canvas.Palette.Radial = function (x1, y1, radius1, x2, y2, radius2){
 			
 			return gradient;
 		};
-	}
-	
-	this.stops = new Array();
-	this.addStop = function(offset, color){
-		var stop = new Object();
-		stop.offset = offset;
-		stop.color = color;
-		this.stops.push(stop);
-	};
-};
-
-
-/**
- * Creates an radial gradient for use in fills.
- * @constructor {public} Palette.Pattern
- * @param {String} src The URL of an image file.
- * @param {optional String} repeat How the patter should repeat. Valid values are repeat, repeat-x, repeat-y and no-repeat. Defaults to repeat.
- * @author Oliver Moran
- * @since 0.2
- */
-Canvas.Palette.Pattern = function (src, repeat){
-	if (repeat == undefined) repeat = "repeat";
-
-	if ((src && repeat) != undefined){
-		this.image = Canvas.Library.addImage(src);
-		this.repeat = repeat;
 		
-		this.draw = function(senders, context){
-			var gradient = context.createPattern(this.image, this.repeat);
-			return gradient;
+		this.stops = new Array();
+		this.addStop = function(offset, color){
+			var stop = new Object();
+			stop.offset = offset;
+			stop.color = color;
+			this.stops.push(stop);
 		};
-	}
-};
-
-
-
-
-
-
-
-
-
-
-
-/*
- * Yuichi Tateno. <hotchpotch@N0!spam@gmail.com>
- * http://rails2u.com/
- * 
- * The MIT License
- * --------
- * Copyright (c) 2007 Yuichi Tateno
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
- 
-/* 
- * The following is based on JSTweener by Yuichi Tateno:
- * http://coderepos.org/share/wiki/JSTweener
- *
- * Adapted for use with Canvas API by Oliver Moran (2010)
- *
- */
-
-/**
- * The static Tweener class, which contains a range of methods for animating Pallet Objects.
- * @class {static} Canvas.Tweener
- * @author Yuichi Tateno
- * @since 0.2
- */
-Canvas.Tweener = {
-    looping: false,
-    objects: [],
-    defaultOptions: {
-	    framerate: 12,
-        time: 1,
-        transition: 'linear',
-        delay: 0,
-        onStart: undefined,
-        onStartParams: undefined,
-        onUpdate: undefined,
-        onUpdateParams: undefined,
-        onComplete: undefined,
-        onCompleteParams: undefined
-    },
-    inited: false,
-    easingFunctionsLowerCase: {},
-    init: function() {
-        this.inited = true;
-        for (var key in Canvas.Tweener.easingFunctions) {
-            this.easingFunctionsLowerCase[key.toLowerCase()] = Canvas.Tweener.easingFunctions[key];
-        }
-    },
+		
+		return true;
+	};
+	
+	
 	/**
-	 * Applies a tween to a Palette Object.
-	 * @function {public static void} Tweener.doTween
-	 * @param {Object} obj The object to apply the tween to. This object may be the palette object itself or a sub-object (such as stroke).
-	 * @param {Object} options An object containing parameters that define the behavior of the tween.
-	 * @... {optional Number} time The duration in seconds of the tween. Defaults to 1.
-	 * @... {optional String} transition The name of the tween to use. Valid values are "linear", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic", "easeInOutCubic", "easeOutInCubic", "easeInQuart", "easeOutQuart", "easeInOutQuart", "easeOutInQuart", "easeInQuint", "easeOutQuint", "easeInOutQuint", "easeOutInQuint", "easeInSine", "easeOutSine", "easeInOutSine", "easeOutInSine", "easeInExpo", "easeOutExpo", "easeInOutExpo", "easeOutInExpo", "easeInCirc", "easeOutCirc", "easeInOutCirc", "easeOutInCirc", "easeInElastic", "easeOutElastic", "easeInOutElastic", "easeOutInElastic", "easeInBack", "easeOutBack", "easeInOutBack", "easeOutInBack", "easeInBounce", "easeOutBounce", "easeInOutBounce", "easeOutInBounce". Default it "linear". 
-	 * @... {optional Number} delay A delay in seconds before the tween begins.
-	 * @... {optional Function} onComplete A function called on completion of the tween.
-	 * @... {optional Object} onCompleteParams A custom object to be passed as a second argument to the onComplete function. The first argument is an object that describes the tween.
-	 * @... {optional Function} onUpdate A function called on a each frame of the animation.
-	 * @... {optional Object} onUpdateParams A custom object to be passed as a second argument to the onUpdate function. The first argument is an object that describes the tween.
-	 * @... {optional Function} onStart A function called on start of the tween.
-	 * @... {optional Object} onStartParams A custom object to be passed as a second argument to the onStart function. The first argument is an object that describes the tween.
-	 * @... {Number} prop1 A property of obj to be tweened.
-	 * @... {optional Number} propN (Any number of properties of obj may be passed.)
-	 * @return Nothing
+	 * Creates an radial gradient for use in fills.
+	 * @constructor {public} Palette.Pattern
+	 * @param {String} src The URL of an image file.
+	 * @param {optional String} repeat How the patter should repeat. Valid values are repeat, repeat-x, repeat-y and no-repeat. Defaults to repeat.
+	 * @extends Palette.Object
 	 * @author Oliver Moran
 	 * @since 0.2
-	 */	
-    doTween: function(obj, options) {
-        var self = this;
-        if (!this.inited) this.init();
-        var o = {};
-        o.target = obj;
-        o.targetPropeties = {};
-        
-        for (var key in this.defaultOptions) {
-            if (typeof options[key] != 'undefined') {
-                o[key] = options[key];
-                delete options[key];
-            } else {
-                o[key] = this.defaultOptions[key];
-            }
-        }
-
-        if (typeof o.transition == 'function') {
-            o.easing = o.transition;
-        } else {
-            o.easing = this.easingFunctionsLowerCase[o.transition.toLowerCase()];
-        }
-
-        for (var key in options) {
-            var sB = obj[key];
-            o.targetPropeties[key] = {
-                b: sB,
-                c: options[key] - sB
-            };
-        }
-
-        setTimeout(function() {
-            o.startTime = (new Date() - 0);
-            o.endTime = o.time * 1000 + o.startTime;
-
-            if (typeof o.onStart == 'function') {
-                if (o.onStartParams) {
-                    o.onStart.apply(o, o.onStartParams);
-                } else {
-                    o.onStart();
-                }
-            }
-
-            self.objects.push(o);
-            if (!self.looping) { 
-                self.looping = true;
-                self.eventLoop.call(self);
-            }
-        }, o.delay * 1000);
-    },
-    eventLoop: function() {
-        var now = (new Date() - 0);
-        for (var i = 0; i < this.objects.length; i++) {
-            var o = this.objects[i];
-            var t = now - o.startTime;
-            var d = o.endTime - o.startTime;
-
-            if (t >= d) {
-                for (var property in o.targetPropeties) {
-                    var tP = o.targetPropeties[property];
-					o.target[property] = (tP.b + tP.c);
-                }
-                this.objects.splice(i, 1);
-
-                if (typeof o.onUpdate == 'function') {
-                    if (o.onUpdateParams) {
-                        o.onUpdate.apply(o, o.onUpdateParams);
-                    } else {
-                        o.onUpdate();
-                    }
-                }
-
-                if (typeof o.onComplete == 'function') {
-                    if (o.onCompleteParams) {
-                        o.onComplete.apply(o, o.onCompleteParams);
-                    } else {
-                        o.onComplete();
-                    }
-                }
-            } else {
-                for (var property in o.targetPropeties) {
-                    var tP = o.targetPropeties[property];
-                    o.target[property] = o.easing(t, tP.b, tP.c, d);
-                }
-
-                if (typeof o.onUpdate == 'function') {
-                    if (o.onUpdateParams) {
-                        o.onUpdate.apply(o, o.onUpdateParams);
-                    } else {
-                        o.onUpdate();
-                    }
-                }
-            }
-        }
-
-        if (this.objects.length > 0) {
-            var self = this;
-            setTimeout(function() { self.eventLoop(); }, 1000/o.framerate);
-        } else {
-            this.looping = false;
-        }
-    }
-};
+	 */
+	Canvas.Palette.Pattern = function (src, repeat){
+		if (repeat == undefined) repeat = "repeat"; // possible overload
+		
+		if (typeof src != "string" && typeof repeat != "string") return false; // error catching
+	
+		if ((src && repeat) != undefined){
+			this.image = Canvas.Library.addImage(src);
+			this.repeat = repeat;
+			
+			this.draw = function(senders, context){
+				var gradient = context.createPattern(this.image, this.repeat);
+				return gradient;
+			};
+		}
+		
+		return true;
+	};
+	
+	
+	
+// END OF PALETTE SCOPE
+})();
 
 
-/*
- * Canvas.Tweener.easingFunctions is
- * Tweener's easing functions (Penner's Easing Equations) porting to JavaScript.
- * http://code.google.com/p/tweener/
- */
 
-Canvas.Tweener.easingFunctions = {
-    easeNone: function(t, b, c, d) {
-        return c*t/d + b;
-    },    
-    easeInQuad: function(t, b, c, d) {
-        return c*(t/=d)*t + b;
-    },    
-    easeOutQuad: function(t, b, c, d) {
-        return -c *(t/=d)*(t-2) + b;
-    },    
-    easeInOutQuad: function(t, b, c, d) {
-        if((t/=d/2) < 1) return c/2*t*t + b;
-        return -c/2 *((--t)*(t-2) - 1) + b;
-    },    
-    easeInCubic: function(t, b, c, d) {
-        return c*(t/=d)*t*t + b;
-    },    
-    easeOutCubic: function(t, b, c, d) {
-        return c*((t=t/d-1)*t*t + 1) + b;
-    },    
-    easeInOutCubic: function(t, b, c, d) {
-        if((t/=d/2) < 1) return c/2*t*t*t + b;
-        return c/2*((t-=2)*t*t + 2) + b;
-    },    
-    easeOutInCubic: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutCubic(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInCubic((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInQuart: function(t, b, c, d) {
-        return c*(t/=d)*t*t*t + b;
-    },    
-    easeOutQuart: function(t, b, c, d) {
-        return -c *((t=t/d-1)*t*t*t - 1) + b;
-    },    
-    easeInOutQuart: function(t, b, c, d) {
-        if((t/=d/2) < 1) return c/2*t*t*t*t + b;
-        return -c/2 *((t-=2)*t*t*t - 2) + b;
-    },    
-    easeOutInQuart: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutQuart(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInQuart((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInQuint: function(t, b, c, d) {
-        return c*(t/=d)*t*t*t*t + b;
-    },    
-    easeOutQuint: function(t, b, c, d) {
-        return c*((t=t/d-1)*t*t*t*t + 1) + b;
-    },    
-    easeInOutQuint: function(t, b, c, d) {
-        if((t/=d/2) < 1) return c/2*t*t*t*t*t + b;
-        return c/2*((t-=2)*t*t*t*t + 2) + b;
-    },    
-    easeOutInQuint: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutQuint(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInQuint((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInSine: function(t, b, c, d) {
-        return -c * Math.cos(t/d *(Math.PI/2)) + c + b;
-    },    
-    easeOutSine: function(t, b, c, d) {
-        return c * Math.sin(t/d *(Math.PI/2)) + b;
-    },    
-    easeInOutSine: function(t, b, c, d) {
-        return -c/2 *(Math.cos(Math.PI*t/d) - 1) + b;
-    },    
-    easeOutInSine: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutSine(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInSine((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInExpo: function(t, b, c, d) {
-        return(t==0) ? b : c * Math.pow(2, 10 *(t/d - 1)) + b - c * 0.001;
-    },    
-    easeOutExpo: function(t, b, c, d) {
-        return(t==d) ? b+c : c * 1.001 *(-Math.pow(2, -10 * t/d) + 1) + b;
-    },    
-    easeInOutExpo: function(t, b, c, d) {
-        if(t==0) return b;
-        if(t==d) return b+c;
-        if((t/=d/2) < 1) return c/2 * Math.pow(2, 10 *(t - 1)) + b - c * 0.0005;
-        return c/2 * 1.0005 *(-Math.pow(2, -10 * --t) + 2) + b;
-    },    
-    easeOutInExpo: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutExpo(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInExpo((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInCirc: function(t, b, c, d) {
-        return -c *(Math.sqrt(1 -(t/=d)*t) - 1) + b;
-    },    
-    easeOutCirc: function(t, b, c, d) {
-        return c * Math.sqrt(1 -(t=t/d-1)*t) + b;
-    },    
-    easeInOutCirc: function(t, b, c, d) {
-        if((t/=d/2) < 1) return -c/2 *(Math.sqrt(1 - t*t) - 1) + b;
-        return c/2 *(Math.sqrt(1 -(t-=2)*t) + 1) + b;
-    },    
-    easeOutInCirc: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutCirc(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInCirc((t*2)-d, b+c/2, c/2, d);
-    },    
-    easeInElastic: function(t, b, c, d, a, p) {
-        var s;
-        if(t==0) return b;  if((t/=d)==1) return b+c;  if(!p) p=d*.3;
-        if(!a || a < Math.abs(c)) { a=c; s=p/4; } else s = p/(2*Math.PI) * Math.asin(c/a);
-        return -(a*Math.pow(2,10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )) + b;
-    },    
-    easeOutElastic: function(t, b, c, d, a, p) {
-        var s;
-        if(t==0) return b;  if((t/=d)==1) return b+c;  if(!p) p=d*.3;
-        if(!a || a < Math.abs(c)) { a=c; s=p/4; } else s = p/(2*Math.PI) * Math.asin(c/a);
-        return(a*Math.pow(2,-10*t) * Math.sin((t*d-s)*(2*Math.PI)/p ) + c + b);
-    },    
-    easeInOutElastic: function(t, b, c, d, a, p) {
-        var s;
-        if(t==0) return b;  if((t/=d/2)==2) return b+c;  if(!p) p=d*(.3*1.5);
-        if(!a || a < Math.abs(c)) { a=c; s=p/4; }       else s = p/(2*Math.PI) * Math.asin(c/a);
-        if(t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )) + b;
-        return a*Math.pow(2,-10*(t-=1)) * Math.sin((t*d-s)*(2*Math.PI)/p )*.5 + c + b;
-    },    
-    easeOutInElastic: function(t, b, c, d, a, p) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutElastic(t*2, b, c/2, d, a, p);
-        return Canvas.Tweener.easingFunctions.easeInElastic((t*2)-d, b+c/2, c/2, d, a, p);
-    },    
-    easeInBack: function(t, b, c, d, s) {
-        if(s == undefined) s = 1.70158;
-        return c*(t/=d)*t*((s+1)*t - s) + b;
-    },    
-    easeOutBack: function(t, b, c, d, s) {
-        if(s == undefined) s = 1.70158;
-        return c*((t=t/d-1)*t*((s+1)*t + s) + 1) + b;
-    },    
-    easeInOutBack: function(t, b, c, d, s) {
-        if(s == undefined) s = 1.70158;
-        if((t/=d/2) < 1) return c/2*(t*t*(((s*=(1.525))+1)*t - s)) + b;
-        return c/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + b;
-    },    
-    easeOutInBack: function(t, b, c, d, s) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutBack(t*2, b, c/2, d, s);
-        return Canvas.Tweener.easingFunctions.easeInBack((t*2)-d, b+c/2, c/2, d, s);
-    },    
-    easeInBounce: function(t, b, c, d) {
-        return c - Canvas.Tweener.easingFunctions.easeOutBounce(d-t, 0, c, d) + b;
-    },    
-    easeOutBounce: function(t, b, c, d) {
-        if((t/=d) <(1/2.75)) {
-            return c*(7.5625*t*t) + b;
-        } else if(t <(2/2.75)) {
-            return c*(7.5625*(t-=(1.5/2.75))*t + .75) + b;
-        } else if(t <(2.5/2.75)) {
-            return c*(7.5625*(t-=(2.25/2.75))*t + .9375) + b;
-        } else {
-            return c*(7.5625*(t-=(2.625/2.75))*t + .984375) + b;
-        }
-    },    
-    easeInOutBounce: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeInBounce(t*2, 0, c, d) * .5 + b;
-        else return Canvas.Tweener.easingFunctions.easeOutBounce(t*2-d, 0, c, d) * .5 + c*.5 + b;
-    },    
-    easeOutInBounce: function(t, b, c, d) {
-        if(t < d/2) return Canvas.Tweener.easingFunctions.easeOutBounce(t*2, b, c/2, d);
-        return Canvas.Tweener.easingFunctions.easeInBounce((t*2)-d, b+c/2, c/2, d);
-    }
-};
-Canvas.Tweener.easingFunctions.linear = Canvas.Tweener.easingFunctions.easeNone;
+
 
 
 
@@ -3296,15 +3327,9 @@ Canvas.Tweener.easingFunctions.linear = Canvas.Tweener.easingFunctions.easeNone;
  *
  */
 
-/**
- * The static DOMReady class that determines when the HTML DOM has loaded and initialises Canvas class.
- * @class {static} Canvas.DOMReady
- * @author John Resig
- * @since 0.2
- */
 (function(){
 
-    Canvas.DOMReady = window.DomReady = {};
+    var DOMReady = window.DomReady = {};
 
 	// Everything that has to do with properly supporting our document ready event. Brought over from the most awesome jQuery. 
 
@@ -3431,7 +3456,7 @@ Canvas.Tweener.easingFunctions.linear = Canvas.Tweener.easingFunctions.easeNone;
 	};
 
 	// This is the public function that people can use to hook up ready.
-	Canvas.DOMReady.ready = function(fn, args) {
+	var ready = function(fn, args) {
 		// Attach the listeners
 		bindReady();
     
@@ -3446,115 +3471,29 @@ Canvas.Tweener.easingFunctions.linear = Canvas.Tweener.easingFunctions.easeNone;
 	};
 	
 	bindReady();
-	
+
+	ready(function() {
+		// this funtion kicks it all off
+		if (!document.getElementsByTagName) return false; // not HTML 5
+		
+		// get the array of canvas tags
+		var canvasElements = document.getElementsByTagName('canvas');
+		
+		// loop through the canvas tags
+		for (var i=0; i<canvasElements.length; i++)
+			// if it has an ID and an object with the same name as that ID exists...
+			if (canvasElements[i] != undefined && typeof eval(canvasElements[i].id).init == "function"){
+				if (!canvasElements[i].getContext) return false; // does not support the canvas tag
+				// create a reference to that drawing in the object of the same name
+				eval(canvasElements[i].id).drawing = new Canvas.Drawing(canvasElements[i]);
+				// call the init function in that drawing
+				eval(canvasElements[i].id).init();
+				// draw it (there may be a delay between now and the start of animation)
+				eval(canvasElements[i].id).drawing.draw();
+				// auto start the animation
+				eval(canvasElements[i].id).drawing.start();
+			}
+	});
 })();
 
-// Call the init function when the DOM is ready
-Canvas.DOMReady.ready(function() {
-	Canvas.init();
-});
 
-
-
-
-
-
-
-
-
-
-
-
-/*
- * The follow is dual licenced under either the LGPL or BSD licence:
- */
-
-/*
- * Copyright © 2010 Bill Surgent
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
- */
-
-/*
- * Copyright (c) 2010, Bill Surgent
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions are met:
- * 1. Redistributions of source code must retain the above copyright notice, 
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. Neither the name of Bill Surgent nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
- * POSSIBILITY OF SUCH DAMAGE.
- * 
- */
-
-/* 
- * Adapted for use with Canvas API by Oliver Moran (2010)
- *
- */
-
-// Determines whether a point is inside a polygon.
-// Returns true when the point is inside the polygon otherwise false.
-// Points are objects with x and y properties and the polygon is an array of these points
-Canvas.Utils.isPointInPolygon = function(point, polygon) {
-	var ep1, ep2; // Edge points that represent one edge of the polygon
-	var crossings=0; // Number of times a ray crosses the polygons edges from the left to the test point
-    
-	// Test each edge for a crossing
-	for (var i=0, l=polygon.length; i<l; ++i)
-	{
-		//Points representing the current polygon edge to test
-		ep1 = polygon[i];
-		ep2 = polygon[(i+1) % l];
-		
-		//One endpoint must be above the test point and the other must be below for a crossing to occur
-		if ( (ep1.y >= point.y && ep2.y < point.y) || (ep1.y < point.y && ep2.y >= point.y) ) {
-			if(ep1.x < point.x && ep2.x < point.x) // Both points left is a crossing
-				++crossings;
-			else if (ep1.x < point.x || ep2.x < point.x) { // One point left requires more work
-				var x1 = ep1.x;
-				var y1 = ep1.y;
-				var x2 = ep2.x;
-				var y2 = ep2.y;
-				var y = point.y;
-				
-				// Point on the edge with the same y value as the test point
-				var x = (y-y1) * ((x2-x1)/(y2-y1)) + x1;
-				
-				// If the edge is to the left of the test point
-				if(x < point.x) ++crossings;
-            }
-        }
-    }
-    
-    // Odd number of edge crossings means the point is in the polygon
-    return crossings & 1;
-};

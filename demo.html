@@ -17,12 +17,15 @@
 Canvas.debug = true;
 
 var clock = {
+		
+		
+		
 	init : function(){
 		// Add the 12 ticks for the hours to the clock
 		for (i=0; i<12; i++){
 			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
-			tick.pivot.y = 150;				// Move the origin of the tick to the centre of the clock
-			tick.stroke.color = "lightGrey";
+			tick.pivoty = 150;				// Move the origin of the tick to the centre of the clock
+			tick.stroke = "lightGrey";
 			tick.rotation = (360/12)*i;		// Rotate the tick so that it there are tweleve evenly spaced around the clock face
 			var hitArea = new Canvas.Palette.HitArea(0,0, 50,0, 50,50, 0,50);
 			clock.drawing.add(tick);
@@ -30,28 +33,35 @@ var clock = {
 
 		// Create the three hand for the clock
 		var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
-		hour_hand.stroke.width = 10;
-		hour_hand.stroke.color = "darkGrey";
-		hour_hand.stroke.cap = "round";
+		hour_hand.stroke = "darkGrey";
+		hour_hand.strokeWidth = 10;
+		hour_hand.strokeCap = "round";
 		hour_hand.layer = 1;
 		clock.drawing.add(hour_hand);
 
 		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
-		minute_hand.stroke.width = 5;
-		minute_hand.stroke.color = "grey";
-		minute_hand.stroke.cap = "round";
+		minute_hand.stroke = "grey";
+		minute_hand.strokeWidth = 5;
+		minute_hand.strokeCap = "round";
 		minute_hand.layer = 2;
 		clock.drawing.add(minute_hand);
 	
 		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
-		second_hand.stroke.width = 1;
+		second_hand.strokeWidth = 1;
 		second_hand.layer = 1;
 		clock.drawing.add(second_hand);
 		
-		var text = new Canvas.Palette.Text(150, 85, "Canvas API");
+		// logo text
+		var text = new Canvas.Palette.Text(150, 85, "Canvas API", 40);
 		text.align = "center";
 		text.fill = "lightGrey";
-		clock.drawing.add(text);
+		clock.drawing.add(text, "text");
+		text.onRelease = function(){
+			if (text.alpha > 0) text.fadeOut();
+			else text.fadeIn();
+		}
+		
+		var t = new Canvas.Palette.Line();
 		
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){
@@ -63,7 +73,7 @@ var clock = {
 		}
 	}
 }
- 
+
 </script>
 
 </body>
