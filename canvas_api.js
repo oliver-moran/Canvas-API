@@ -2,7 +2,7 @@
  * Canvas API: A JavaScript library for the HTML5 canvas tag.
  * 
  * Copyright © 2010 Oliver Moran <oliver.moran@N0!spam@gmail.com>
- * Contributors: Todd Eichel, John Resig, Bill Surgent, Yuichi Tateno
+ * Contributors: Todd Eichel, Masanao Izumo, John Resig, Jacob Seidelin, Bill Surgent, Yuichi Tateno
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -57,6 +57,11 @@ var Canvas = {
 	 */
 	init: function(){
 		if (!document.getElementsByTagName) return false; // not HTML 5
+		
+		// set defaults if they have not been overwritten yet
+		if (this.imageEffectsLibrary == null && typeof Pixastic == "object" && typeof Pixastic.process == "function") {
+			this.imageEffectsLibrary = Pixastic.process; // default fx library (added on DOM load because it might not be ready before now)
+		}
 		
 		// get the array of canvas tags
 		var canvasElements = document.getElementsByTagName('canvas');
@@ -122,30 +127,20 @@ var Canvas = {
 		 * @since 0.2
 		 */
 		debug : false,
-		
-		
 		/**
-		 * Determines the text direction of the canvas tags in a document.
-		 * @function {private static Boolean} Canvas.Utils.DocumentIsLeftToRight
-		 * @return true if text runs left-to-right otherwise false.
+		 * A reference to an image effects library for images. Defaults to Pixastic.process.
+		 * @function {public abstract Object} Canvas.Utils.imageEffectsLibrary
+		 * @param {Object} image The image to add an effect to.
+		 * @param {String} effect The effect to add.
+		 * @param {optional Object} args An object containing arguments used in applying the effect.
+		 * @return A new image with the effect applied.
 		 * @author Oliver Moran
 		 * @since 0.2
 		 */
-		DocumentIsLeftToRight : function() {
-			var canvas = document.createElement("canvas");
-			canvas.setAttribute("style", "margin: 0 0 0 0; padding: 0 0 0 0; text-align:default;");
-			var span = document.createElement("span");
-			var text = document.createTextNode("X");
-			span.appendChild(text);
-			canvas.appendChild(span);
-			document.body.appendChild(canvas);
-			
-			var result = (span.offsetLeft < (canvas.offsetWidth - (span.offsetLeft + span.offsetWidth)));
-			
-			document.body.removeChild(canvas); // remove it
-			
-			return result;
-		},
+		imageEffectsLibrary : null,
+		
+		
+
 	
 		// GEOMETERY
 		
@@ -209,6 +204,12 @@ var Canvas = {
  * @since 0.2
  */
 Canvas.Drawing = function(canvas){
+	/**
+	 * A self reference for use in private functions.
+	 * @property {private Object} Drawing._this
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
 	var _this = this; // for methods that are outside of scope
 
 	// CANVAS TAG PROPERTIES
@@ -233,7 +234,7 @@ Canvas.Drawing = function(canvas){
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
-	this.object = eval(this.canvas.id);
+	this.object = eval(this.canvas.id); // XXX: is this used?
 	
 	// KEY EVENTS
 	
@@ -392,6 +393,446 @@ Canvas.Drawing = function(canvas){
 			 || typeof obj.onMouseOver == "function" 
 			 || obj.onMouseOut == "function");
 	};
+	
+	// COPY AND SAVE FUNCTIONS
+		
+	/* Copyright (C) 1999 Masanao Izumo <iz@onicos.co.jp>
+	 * Version: 1.0
+	 * LastModified: Dec 25 1999
+	 * This library is free.  You can redistribute it and/or modify it.
+	 */
+	
+	/*
+	 * Interfaces:
+	 * b64 = base64encode(data);
+	 * data = base64decode(b64);
+	 */
+	
+	var base64EncodeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	var base64DecodeChars = new Array(
+		-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+		52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+		-1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+		15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+		-1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+		41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1);
+	
+	var base64encode = function(str) {
+		var out, i, len;
+		var c1, c2, c3;
+		
+		len = str.length;
+		i = 0;
+		out = "";
+		while(i < len) {
+		c1 = str.charCodeAt(i++) & 0xff;
+		if(i == len)
+		{
+			out += base64EncodeChars.charAt(c1 >> 2);
+			out += base64EncodeChars.charAt((c1 & 0x3) << 4);
+			out += "==";
+			break;
+		}
+		c2 = str.charCodeAt(i++);
+		if(i == len)
+		{
+			out += base64EncodeChars.charAt(c1 >> 2);
+			out += base64EncodeChars.charAt(((c1 & 0x3)<< 4) | ((c2 & 0xF0) >> 4));
+			out += base64EncodeChars.charAt((c2 & 0xF) << 2);
+			out += "=";
+			break;
+		}
+		c3 = str.charCodeAt(i++);
+		out += base64EncodeChars.charAt(c1 >> 2);
+		out += base64EncodeChars.charAt(((c1 & 0x3)<< 4) | ((c2 & 0xF0) >> 4));
+		out += base64EncodeChars.charAt(((c2 & 0xF) << 2) | ((c3 & 0xC0) >>6));
+		out += base64EncodeChars.charAt(c3 & 0x3F);
+		}
+		return out;
+	};
+	
+	base64decode = function(str) {
+		var c1, c2, c3, c4;
+		var i, len, out;
+		
+		len = str.length;
+		i = 0;
+		out = "";
+		while(i < len) {
+		/* c1 */
+		do {
+			c1 = base64DecodeChars[str.charCodeAt(i++) & 0xff];
+		} while(i < len && c1 == -1);
+		if(c1 == -1)
+			break;
+	
+		/* c2 */
+		do {
+			c2 = base64DecodeChars[str.charCodeAt(i++) & 0xff];
+		} while(i < len && c2 == -1);
+		if(c2 == -1)
+			break;
+	
+		out += String.fromCharCode((c1 << 2) | ((c2 & 0x30) >> 4));
+	
+		/* c3 */
+		do {
+			c3 = str.charCodeAt(i++) & 0xff;
+			if(c3 == 61)
+			return out;
+			c3 = base64DecodeChars[c3];
+		} while(i < len && c3 == -1);
+		if(c3 == -1)
+			break;
+	
+		out += String.fromCharCode(((c2 & 0XF) << 4) | ((c3 & 0x3C) >> 2));
+	
+		/* c4 */
+		do {
+			c4 = str.charCodeAt(i++) & 0xff;
+			if(c4 == 61)
+			return out;
+			c4 = base64DecodeChars[c4];
+		} while(i < len && c4 == -1);
+		if(c4 == -1)
+			break;
+		out += String.fromCharCode(((c3 & 0x03) << 6) | c4);
+		}
+		return out;
+	};
+	
+	if (!window.btoa) window.btoa = base64encode;
+	if (!window.atob) window.atob = base64decode;
+	
+	// End of (C) 1999 Masanao Izumo
+
+	/*
+	 * Copyright (c) 2008 Jacob Seidelin, jseidelin@nihilogic.dk
+	 * 
+	 * Permission is hereby granted, free of charge, to any person obtaining
+	 * a copy of this software and associated documentation files (the
+	 * "Software"), to deal in the Software without restriction, including
+	 * without limitation the rights to use, copy, modify, merge, publish,
+	 * distribute, sublicense, and/or sell copies of the Software, and to
+	 * permit persons to whom the Software is furnished to do so, subject to
+	 * the following conditions:
+	 * 
+	 * The above copyright notice and this permission notice shall be
+	 * included in all copies or substantial portions of the Software.
+	 * 
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	 * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	 * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+	 * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	 * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+	 * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+	 */
+
+	var bHasImageData = !!(this.context.getImageData);
+	var bHasDataURL = !!(this.canvas.toDataURL);
+	var bHasBase64 = !!(window.btoa);
+	
+	var strDownloadMime = "image/octet-stream";
+	
+	var readCanvasData = function(oCanvas) {
+		var iWidth = parseInt(oCanvas.width);
+		var iHeight = parseInt(oCanvas.height);
+		return oCanvas.getContext("2d").getImageData(0,0,iWidth,iHeight);
+	};
+
+	// base64 encodes either a string or an array of charcodes
+	var encodeData = function(data) {
+		var strData = "";
+		if (typeof data == "string") {
+			strData = data;
+		} else {
+			var aData = data;
+			for (var i=0;i<aData.length;i++) {
+				strData += String.fromCharCode(aData[i]);
+			}
+		}
+		return btoa(strData);
+	};
+
+	// creates a base64 encoded string containing BMP data
+	// takes an imagedata object as argument
+	var createBMP = function(oData) {
+		var aHeader = [];
+	
+		var iWidth = oData.width;
+		var iHeight = oData.height;
+
+		aHeader.push(0x42); // magic 1
+		aHeader.push(0x4D); 
+	
+		var iFileSize = iWidth*iHeight*3 + 54; // total header size = 54 bytes
+		aHeader.push(iFileSize % 256); iFileSize = Math.floor(iFileSize / 256);
+		aHeader.push(iFileSize % 256); iFileSize = Math.floor(iFileSize / 256);
+		aHeader.push(iFileSize % 256); iFileSize = Math.floor(iFileSize / 256);
+		aHeader.push(iFileSize % 256);
+
+		aHeader.push(0); // reserved
+		aHeader.push(0);
+		aHeader.push(0); // reserved
+		aHeader.push(0);
+
+		aHeader.push(54); // dataoffset
+		aHeader.push(0);
+		aHeader.push(0);
+		aHeader.push(0);
+
+		var aInfoHeader = [];
+		aInfoHeader.push(40); // info header size
+		aInfoHeader.push(0);
+		aInfoHeader.push(0);
+		aInfoHeader.push(0);
+
+		var iImageWidth = iWidth;
+		aInfoHeader.push(iImageWidth % 256); iImageWidth = Math.floor(iImageWidth / 256);
+		aInfoHeader.push(iImageWidth % 256); iImageWidth = Math.floor(iImageWidth / 256);
+		aInfoHeader.push(iImageWidth % 256); iImageWidth = Math.floor(iImageWidth / 256);
+		aInfoHeader.push(iImageWidth % 256);
+	
+		var iImageHeight = iHeight;
+		aInfoHeader.push(iImageHeight % 256); iImageHeight = Math.floor(iImageHeight / 256);
+		aInfoHeader.push(iImageHeight % 256); iImageHeight = Math.floor(iImageHeight / 256);
+		aInfoHeader.push(iImageHeight % 256); iImageHeight = Math.floor(iImageHeight / 256);
+		aInfoHeader.push(iImageHeight % 256);
+	
+		aInfoHeader.push(1); // num of planes
+		aInfoHeader.push(0);
+	
+		aInfoHeader.push(24); // num of bits per pixel
+		aInfoHeader.push(0);
+	
+		aInfoHeader.push(0); // compression = none
+		aInfoHeader.push(0);
+		aInfoHeader.push(0);
+		aInfoHeader.push(0);
+	
+		var iDataSize = iWidth*iHeight*3; 
+		aInfoHeader.push(iDataSize % 256); iDataSize = Math.floor(iDataSize / 256);
+		aInfoHeader.push(iDataSize % 256); iDataSize = Math.floor(iDataSize / 256);
+		aInfoHeader.push(iDataSize % 256); iDataSize = Math.floor(iDataSize / 256);
+		aInfoHeader.push(iDataSize % 256); 
+	
+		for (var i=0;i<16;i++) {
+			aInfoHeader.push(0);	// these bytes not used
+		}
+	
+		var iPadding = (4 - ((iWidth * 3) % 4)) % 4;
+
+		var aImgData = oData.data;
+
+		var strPixelData = "";
+		var y = iHeight;
+		do {
+			var iOffsetY = iWidth*(y-1)*4;
+			var strPixelRow = "";
+			for (var x=0;x<iWidth;x++) {
+				var iOffsetX = 4*x;
+
+				strPixelRow += String.fromCharCode(aImgData[iOffsetY+iOffsetX+2]);
+				strPixelRow += String.fromCharCode(aImgData[iOffsetY+iOffsetX+1]);
+				strPixelRow += String.fromCharCode(aImgData[iOffsetY+iOffsetX]);
+			}
+			for (var c=0;c<iPadding;c++) {
+				strPixelRow += String.fromCharCode(0);
+			}
+			strPixelData += strPixelRow;
+		} while (--y);
+
+		var strEncoded = encodeData(aHeader.concat(aInfoHeader)) + encodeData(strPixelData);
+
+		return strEncoded;
+	};
+
+
+	// sends the generated file to the client
+	var saveFile = function(strData) {
+		document.location.href = strData;
+	};
+
+	var makeDataURI = function(strData, strMime) {
+		return "data:" + strMime + ";base64," + strData;
+	};
+
+	// generates a <img> object containing the imagedata
+	var makeImageObject = function(strSource) {
+		var oImgElement = document.createElement("img");
+		oImgElement.src = strSource;
+		return oImgElement;
+	};
+
+	var clipCanvas = function(oCanvas, iClipX, iClipY, iWidth, iHeight) {
+		if (!isNaN(iClipX) && !isNaN(iClipY) && !isNaN(iWidth) && !isNaN(iHeight)) {
+			var oSaveCanvas = document.createElement("canvas");
+			oSaveCanvas.width = iWidth;
+			oSaveCanvas.height = iHeight;
+			oSaveCanvas.style.width = iWidth+"px";
+			oSaveCanvas.style.height = iHeight+"px";
+
+			var oSaveCtx = oSaveCanvas.getContext("2d");
+
+			oSaveCtx.drawImage(oCanvas, iClipX, iClipY, oSaveCanvas.width, oSaveCanvas.height, 0, 0, oSaveCanvas.width, oSaveCanvas.height);
+			return oSaveCanvas;
+		}
+		return oCanvas;
+	};
+
+	var saveAsPNG = function(oCanvas, bReturnImg, iClipX, iClipY, iWidth, iHeight) {
+		if (!bHasDataURL) {
+			return false;
+		}
+		var oScaledCanvas = clipCanvas(oCanvas, iClipX, iClipY, iWidth, iHeight);
+		var strData = oScaledCanvas.toDataURL("image/png");
+		if (bReturnImg) {
+			return makeImageObject(strData);
+		} else {
+			saveFile(strData.replace("image/png", strDownloadMime));
+		}
+		return true;
+	};
+
+	var saveAsJPEG = function(oCanvas, bReturnImg, iClipX, iClipY, iWidth, iHeight) {
+		if (!bHasDataURL) {
+			return false;
+		}
+
+		var oScaledCanvas = clipCanvas(oCanvas, iClipX, iClipY, iWidth, iHeight);
+		var strMime = "image/jpeg";
+		var strData = oScaledCanvas.toDataURL(strMime);
+
+		// check if browser actually supports jpeg by looking for the mime type in the data uri.
+		// if not, return false
+		if (strData.indexOf(strMime) != 5) {
+			return false;
+		}
+
+		if (bReturnImg) {
+			return makeImageObject(strData);
+		} else {
+			saveFile(strData.replace(strMime, strDownloadMime));
+		}
+		return true;
+	};
+
+	var saveAsBMP = function(oCanvas, bReturnImg, iClipX, iClipY, iWidth, iHeight) {
+		if (!(bHasImageData && bHasBase64)) {
+			return false;
+		}
+
+		var oScaledCanvas = clipCanvas(oCanvas, iClipX, iClipY, iWidth, iHeight);
+
+		var oData = readCanvasData(oScaledCanvas);
+		var strImgData = createBMP(oData);
+		if (bReturnImg) {
+			return makeImageObject(makeDataURI(strImgData, "image/bmp"));
+		} else {
+			saveFile(makeDataURI(strImgData, strDownloadMime));
+		}
+		return true;
+	};
+
+	
+	// End of (c) 2008 Jacob Seidelin
+	
+	
+	
+	
+	
+	/**
+	 * Downloads the current canvas or a region of it as an image file.  Access to this function can hinder the loading of content so it can only be accessed if the contents of the Library has fully loaded.
+	 * @function {public Boolean} Drawing.save
+	 * @param {optional String} format A string indicating the format to save the canvas as. Valid values are JPEG, BMP and PNG. The default is PNG.
+	 * @param {optional Number} x The x coordinate of the top-left corner to clip. Defaults to 0.
+	 * @param {optional Number} y The y coordinate of the top-left corner to clip. Defaults to 0.
+	 * @param {optional Number} width The width of the region to copy. Defaults to the width of the canvas minus x.
+	 * @param {optional Number} height The height of the region to copy. Defaults to the height of the canvas minus y.
+	 * @return true if the operation was successful otherwise false, including if the Library was not fully loaded.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */
+	this.save = function(format, x, y, width, height){
+		if (Canvas.Library.status().incomplete > 0) return false;
+		if (!isNaN(format)){ // possible overriding
+			height = width;
+			width = y;
+			y = x;
+			x = format;
+			format = "PNG";
+		}
+		if (format === undefined) format = "PNG";
+		if (typeof format != "string") return false;
+		if (x == undefined) x = 0;
+		if (y == undefined) y = 0;
+		if (width == undefined) width = this.canvas.width - x;
+		if (height == undefined) height = this.canvas.height - y;
+		
+		switch (format.toUpperCase()){
+			case "JPEG":
+			case "JPG":
+				saveAsJPEG(this.canvas, false, x, y, width, height);
+				break;
+			case "BMP":
+				saveAsBMP(this.canvas, false, x, y, width, height);
+				break;
+			case "PNG":
+			default:
+				saveAsPNG(this.canvas, false, x, y, width, height);
+				break;
+		}
+		
+		return true;
+	};
+	
+	
+	/**
+	 * Returns a bitmap copy of the canvas or a region of it. Access to this function can hinder the loading of content so it can only be accessed if the contents of the Library has fully loaded.
+	 * @function {public Image} Drawing.copy
+	 * @param {optional Number} x The x coordinate of the top-left corner to clip. Defaults to 0.
+	 * @param {optional Number} y The y coordinate of the top-left corner to clip. Defaults to 0.
+	 * @param {optional Number} width The width of the region to copy. Defaults to the width of the canvas minus x.
+	 * @param {optional Number} height The height of the region to copy. Defaults to the height of the canvas minus y.
+	 * @return Bitmap image data of the canvas or a Boolean false if the Library was not fully loaded.
+	 * @author Oliver Moran
+	 * @since 0.2
+	 */	
+	this.copy = function(x, y, width, height){
+		if (Canvas.Library.status().incomplete > 0) return false;
+		if (x == undefined) x = 0;
+		if (y == undefined) y = 0;
+		if (width == undefined) width = this.canvas.width - x;
+		if (height == undefined) height = this.canvas.height - y;
+		
+		return saveAsBMP(this.canvas, true, x, y, width, height);
+	};
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 	// ANIMATION
 	
@@ -408,6 +849,7 @@ Canvas.Drawing = function(canvas){
 	 * @function {public void} Drawing.onBeforeDraw
 	 * @param {Object} _this A reference to the Canvas.drawing object because this is lost though the onTimeOut function
 	 * @see Drawing.onDraw
+	 * @return Nothing
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
@@ -646,13 +1088,14 @@ Canvas.Library.images = new Array();
  */
 Canvas.Library.addImage = function(src){
 	var image = new Image();
+	
 	image.onload = function(){
 		// loaded
 	};
 	// image.onerror
 	// image.onabort
 	image.src = src;
-	
+
 	Canvas.Library.images.push(image);
 	return Canvas.Library.images[Canvas.Library.images.length-1];
 };
@@ -769,7 +1212,39 @@ Canvas.Library.addVideo = function(src){
 
 
 
+/**
+ * Returns an object describing the count of complete vs. incompletely loaded items in the library.
+ * @function {public Object} Library.status
+ * @return An object containing the following properties: total, incomplete, images, audio, videos, imagesIncomplete, audioIncomplete, videosIncomplete, videosIncomplete
+ * @author Oliver Moran
+ * @since 0.2
+ */	
+Canvas.Library.status = function(){
+	var imagesIncomplete = 0;
+	for (var image in Canvas.Library.images)
+		if (Canvas.Library.images[image] && !Canvas.Library.images[image].complete) imagesIncomplete++;
+	
+	var audioIncomplete = 0;
+	for (var audio in Canvas.Library.audio)
+		if (Canvas.Library.audio[audio] && !Canvas.Library.audio[audio].complete) audioIncomplete++;
 
+	var videosIncomplete = 0;
+	for (var video in Canvas.Library.videos)
+		if (Canvas.Library.videos[video] && !Canvas.Library.videos[video].complete) videosIncomplete++;
+	
+	return {
+		total: Canvas.Library.images.length + Canvas.Library.audio.length + Canvas.Library.videos.length,
+		incomplete: imagesIncomplete + audioIncomplete + videosIncomplete,
+		
+		images: Canvas.Library.images.length,
+		audio: Canvas.Library.audio.length,
+		videos: Canvas.Library.videos.length,
+		
+		imagesIncomplete: imagesIncomplete,
+		audioIncomplete: audioIncomplete,
+		videosIncomplete: videosIncomplete
+	};
+};
 
 
 
@@ -1139,6 +1614,7 @@ Canvas.Palette.Object = function(){
 			this.alpha = Canvas.Palette.Object.alpha;
 		}
 		*/
+		context.globalCompositeOperation = "source-over";
 		
 		context.lineWidth = this.stroke.width;
 		context.lineCap = this.stroke.cap;
@@ -1194,6 +1670,7 @@ Canvas.Palette.Object = function(){
 			else if (this instanceof Canvas.Palette.Video) obj2 = new Canvas.Palette.Video();
 			else if (this instanceof Canvas.Palette.Text) obj2 = new Canvas.Palette.Text();
 			else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Group();
+			else if (this instanceof Canvas.Palette.Group) obj2 = new Canvas.Palette.Procedure();
 			else return undefined; // uh-oh!
 		} else {
 			if (obj instanceof Array) obj2 = new Array();
@@ -1638,18 +2115,62 @@ Canvas.Palette.Quadratic = function(x1, y1, x2, y2, c_x, c_y){
 Canvas.Palette.Image = function(x, y, src){
 	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
 
-	if ((x && y && src) != undefined){
+	if (!isNaN(x) && !isNaN(y) 
+		&& (typeof src == "string" || (typeof src == "object" && src.constructor == document.createElement("img").constructor))){
 		this.x = x;
 		this.y = y;
-		this.image = Canvas.Library.addImage(src);
+		var image = src;
+		if (typeof src == "string") image = Canvas.Library.addImage(src);
+		var _image = image;
+		
+		/**
+		 * If an effects library is included on the web page, Canvas API can add effects to images using that library. Currently only the Pixastic library is supported.
+		 * @function {public void} Palette.Video.addEffect
+		 * @param {String} name The name of the effect to add.
+		 * @param {Object} args An objet containing the arguments to be passed to the effects library.
+		 * @return Nothing
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		var effect = null;
+		var effect_args = null;
+		this.addEffect = function(name, args){
+			effect = name;
+			effect_args = args;
+		};
+		/**
+		 * Clears all of the effects added to an image.
+		 * @function {public void} Palette.Video.clearEffects
+		 * @return Nothing
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.clearEffects = function(){
+			proc_image = image;
+		};
 		
 		this.draw = function(senders, context, trace){
-			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
+			if (effect) { // we don't need to test for the library because of the try...catch
+				try{
+					_image = Canvas.imageEffectsLibrary(_image, effect, effect_args);
+					effect = null;
+				} catch(err){
+					effect = null; // set to null so we don't create a loop
+					// something may have gone wrong in the library, so ignore it
+				}
+			}
+			
 			
 			if (this.clip.width == undefined) 
-				this.clip.width = this.image.naturalWidth - this.clip.x;
+				if (_image.naturalWidth) this.clip.width = _image.naturalWidth - this.clip.x;
+				else if (_image.width) this.clip.width = _image.width - this.clip.x; // Opera
+				else return false; // would cause an error
 			if (this.clip.height == undefined) 
-				this.clip.height = this.image.naturalHeight - this.clip.y;
+				if (_image.naturalHeight) this.clip.height = _image.naturalHeight - this.clip.y;
+				else if (_image.height) this.clip.height = _image.height - this.clip.y; // Opera
+				else return false; // would cause an error
+			
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 
 			if (trace) {
 				context.strokeStyle = "transparent";
@@ -1660,7 +2181,7 @@ Canvas.Palette.Image = function(x, y, src){
 				context.lineTo(0-this.pivot.x, this.clip.height-this.pivot.y);
 				context.closePath();
 			} else {
-				context.drawImage(this.image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
+				context.drawImage(_image, this.clip.x, this.clip.y, this.clip.width, this.clip.height, -this.pivot.x, -this.pivot.y, this.clip.width, this.clip.height);
 			}
 			
 			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
@@ -1811,6 +2332,37 @@ Canvas.Palette.Text = function(x, y, text){
 		this.fill = this.stroke.color;
 		this.stroke.color = "transparent";
 		
+		
+		
+		
+		
+		/**
+		 * Determines the text direction of the canvas tags in a document.
+		 * @function {private static Boolean} Canvas.Palette.Text.determineDocumentIsLeftToRight
+		 * @return true if text runs left-to-right otherwise false.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		var determineDocumentIsLeftToRight = function() {
+			var canvas = document.createElement("canvas");
+			canvas.setAttribute("style", "margin: 0 0 0 0; padding: 0 0 0 0; text-align:default;");
+			var span = document.createElement("span");
+			var text = document.createTextNode("X");
+			span.appendChild(text);
+			canvas.appendChild(span);
+			document.body.appendChild(canvas);
+			
+			var result = (span.offsetLeft < (canvas.offsetWidth - (span.offsetLeft + span.offsetWidth)));
+			
+			document.body.removeChild(canvas); // remove it
+			
+			return result;
+		};
+		var documentIsLeftToRight = determineDocumentIsLeftToRight();
+		
+		
+		
+		
 		this.draw = function(senders, context, trace){
 			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
 
@@ -1831,7 +2383,7 @@ Canvas.Palette.Text = function(x, y, text){
 				var offsetx = 0;
 				var xdir = +1;
 				if (this.align == "center") offsetx = -this.width()/2;
-				else if (this.align == "right" || (this.align == "start" && !Canvas.Utils.DocumentIsLeftToRight()) || (this.align == "end" && dir == "ltr"))
+				else if (this.align == "right" || (this.align == "start" && !documentIsLeftToRight) || (this.align == "end" && dir == "ltr"))
 					xdir = -1;
 				// "top", "hanging", "middle", "alphabetic", "ideographic", "bottom".
 				var offsety = 0;
@@ -1894,33 +2446,6 @@ Canvas.Palette.Text = function(x, y, text){
 			
 			return textMetrics.width;
 		};
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 	}
 };
 
@@ -2202,6 +2727,49 @@ Canvas.Palette.HitArea = function (){
 		};
 		
 
+	}
+};
+
+
+/**
+ * Creates a Procedure object. This is a special kind of object that calls a user definable function when it is drawn. This object can be used to draw objects using the standard W3C procedural API. Other uses are also possible.
+ * @constructor {public} Palette.Procedure
+ * @param {Function} procedure A function to be called 
+ * @return Nothing.
+ * @author Oliver Moran
+ * @since 0.2
+ */
+Canvas.Palette.Procedure = function (procedure){
+	Canvas.Utils.inherit(this, new Canvas.Palette.Object());
+	
+	if (typeof procedure == "function"){
+		this.x = 0;
+		this.y = 0;
+		var _procedure = procedure;
+		
+		this.draw = function(senders, context, trace){
+			if (trace || this.isMaskingObject(senders)) return; // XXX: How should we handle these?
+			
+			this.beforeDrawObject(this.x+this.pivot.x, this.y+this.pivot.y, senders, context, trace);
+		
+			// just in case
+			context.beginPath();
+			context.closePath();
+			
+			// TODO: Add try...catch and nice error handling should something go wrong in this function
+			_procedure();
+
+			// just in case
+			context.beginPath();
+			context.closePath();
+		
+			
+			this.afterDrawObject(-(this.x+this.pivot.x), -(this.y+this.pivot.y), senders, context, trace);
+		};
+		
+		this.origin = function(){
+			return {x:this.x, y:this.y};
+		};
 	}
 };
 
