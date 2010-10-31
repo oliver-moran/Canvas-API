@@ -594,10 +594,11 @@ Canvas.Drawing = function(canvas){
 	// MOUSE EVENTS
 	
 	// takes layers because it is recursive (recurses through groups)
-	var checkForHit = function(x, y, layers, angle){
+	var checkForHit = function(x, y, layers, angle, scale){
 		// if no layers were given then use the scene
 		if (!layers) layers = sceneByLayer();
 		if (isNaN(angle)) angle = 0;
+		if (typeof scale != "object" || isNaN(scale.x) || isNaN(scale.y)) scale = {x:100, y:100};
 
 		// loop through the objects
 		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
@@ -619,11 +620,11 @@ Canvas.Drawing = function(canvas){
 					layers[i-1].draw([this], __this.context, true); // trance each of the objects
 					if (__this.context.isPointInPath(x, y)) {
 						Canvas.debug = tmp_debug;
-						return {object:layers[i-1], angle:angle};
+						return {object:layers[i-1], angle:angle, scale:scale};
 					}
 					Canvas.debug = tmp_debug;
 				} else {
-					return {object:layers[i-1], angle:angle};
+					return {object:layers[i-1], angle:angle, scale:scale};
 				}
 			}
 
@@ -634,8 +635,10 @@ Canvas.Drawing = function(canvas){
 				__this.context.rotate(layers[i-1].rotation * Math.PI/180);
 				__this.context.transform(layers[i-1].xscale/100, (layers[i-1].xskew * Math.PI/180), (layers[i-1].yskew * -Math.PI/180), layers[i-1].yscale/100, 0, 0);
 				__this.context.translate(-layers[i-1].pivotx, -layers[i-1].pivoty);
-				
-				var hit = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation);
+
+				// FIXME: This does not work properly when groups are skewed (either explicitly or because the matrix is scaled/rotated)
+				var hit = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation+layers[i-1].rotation, 
+										{x:layers[i-1].xscale*(scale.x/100), y:layers[i-1].yscale*(scale.y/100)});
 				
 				if (hit) {
 					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
@@ -652,7 +655,7 @@ Canvas.Drawing = function(canvas){
 							__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
 							__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 
-							return {object:hit.object, angle:hit.angle};
+							return {object:hit.object, angle:hit.angle, scale:hit.scale};
 						}
 						Canvas.debug = tmp_debug;
 					} else {
@@ -662,7 +665,7 @@ Canvas.Drawing = function(canvas){
 						__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
 						__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 
-						return {object:hit.object, angle:hit.angle};
+						return {object:hit.object, angle:hit.angle, scale:hit.scale};
 					}
 				}
 				// reset the matrix
@@ -718,12 +721,18 @@ Canvas.Drawing = function(canvas){
 		drag_object = undefined;
 		last_drag_x = undefined;
 		last_drag_y = undefined;
+		drag_scale = undefined;
 		drag_angle = undefined;
+		drag_position = undefined;
+		drag_on_drag_called = undefined;
 	};
 	var drag_object = undefined;
 	var last_drag_x = undefined;
 	var last_drag_y = undefined;
+	var drag_scale = undefined;
 	var drag_angle = undefined;
+	var drag_position = undefined;
+	var drag_on_drag_called = undefined;
 	this.context.canvas.onmousedown = function(e){
 		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
 		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
@@ -734,7 +743,10 @@ Canvas.Drawing = function(canvas){
 			drag_object = hit.object;
 			last_drag_x = x;
 			last_drag_y = y;
+			drag_scale = hit.scale;
 			drag_angle = hit.angle;
+			drag_position = drag_object.center();
+			drag_on_drag_called = false;
 		}
 	};
 	this.context.canvas.onclick = function(e){
@@ -752,18 +764,23 @@ Canvas.Drawing = function(canvas){
 		__this.mousey = y;
 		
 		if (drag_object && !isNaN(last_drag_x) && !isNaN(last_drag_y)) {
-			if (drag_object.onDragStart) drag_object.onDragStart({x:x, y:y});
+			if (drag_on_drag_called === false && drag_object.onDragStart) {
+				drag_on_drag_called = true;
+				drag_object.onDragStart({x:x, y:y});
+			}
 			
-			var vector = Canvas.Utils.Geometry.rotatePoint({x:(x-last_drag_x), y:(y-last_drag_y)}, drag_angle*-1);
-			
-			/*
-			if (drag_object.dragLimitTop && vector.y < drag_object.dragLimitTop) vector.y = drag_object.dragLimitTop;
-			else if (drag_object.dragLimitBottom && vector.y > drag_object.dragLimitBottom) vector.y = drag_object.dragLimitBottom;
-			if (drag_object.dragLimitLeft && vector.x < drag_object.dragLimitLeft) vector.x = drag_object.dragLimitLeft;
-			else if (drag_object.dragLimitRight && vector.x > drag_object.dragLimitRight) vector.x = drag_object.dragLimitRight;
-			 */
-			drag_object.moveBy(vector.x, vector.y);
+			var vector = Canvas.Utils.Geometry.rotatePoint({x:(x-last_drag_x)/(drag_scale.x/100), y:(y-last_drag_y)/(drag_scale.y/100)}, drag_angle*-1);
+			drag_position.x += vector.x;
+			drag_position.y += vector.y;
+			var obj_position = {x:drag_position.x, y:drag_position.y};
+				
+			if (drag_object.dragLimitTop && obj_position.y < drag_object.dragLimitTop) obj_position.y = drag_object.dragLimitTop;
+			else if (drag_object.dragLimitBottom && obj_position.y > drag_object.dragLimitBottom) obj_position.y = drag_object.dragLimitBottom;
+			if (drag_object.dragLimitLeft && obj_position.x < drag_object.dragLimitLeft) obj_position.x = drag_object.dragLimitLeft;
+			else if (drag_object.dragLimitRight && obj_position.x > drag_object.dragLimitRight) obj_position.x = drag_object.dragLimitRight;
 
+			drag_object.moveTo(obj_position.x, obj_position.y);
+			
 			last_drag_x = x;
 			last_drag_y = y;
 
@@ -786,7 +803,10 @@ Canvas.Drawing = function(canvas){
 		drag_object = undefined;
 		drag_x = undefined;
 		drag_y = undefined;
+		drag_scale = undefined;
 		drag_angle = undefined;
+		drag_position = undefined;
+		drag_on_drag_called = undefined;
 	};
 	
 	
@@ -2360,11 +2380,12 @@ Canvas.Drawing = function(canvas){
 
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x1, y - this.y1);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 
 		this.center = function(){
-			return {x:this.x1, y:this.y1};
+			return {x:(this.x1+this.x2)/2, y:(this.y1+this.y2)/2};
 		};
 
 		// The private draw function
@@ -2440,13 +2461,29 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			if (this.points.length == 0) return false;
-			return this.moveBy(x - this.points[0].x, y - this.points[0].y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 
 		this.center = function(){
 			if (this.points.length == 0) return false;
-			return {x:this.points[0].x, y:this.points[0].y};
+			var xs = "";
+			var ys = "";
+			for (var point in this.points)
+				if (points[point]) {
+					xs = "," + points[point].x;
+					ys = "," + points[point].y;
+				}
+			
+			xs = xs.substring(1);
+			ys = ys.substring(1);
+			
+			var min_x = eval("Math.min("+x2+")");
+			var max_x = eval("Math.max("+x2+")");
+			var min_y = eval("Math.min("+y2+")");
+			var max_y = eval("Math.max("+y2+")");
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 		
 		this.draw = function(senders, context, trace){
@@ -2506,11 +2543,17 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
-			return {x:this.x, y:this.y};
+			var min_x = this.x;
+			var max_x = this.x + this.width;
+			var min_y = this.y;
+			var max_y = this.y + this.height;
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 		
 		this.draw = function(senders, context, trace){
@@ -2574,7 +2617,8 @@ Canvas.Drawing = function(canvas){
 
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 
 		this.center = function(){
@@ -2644,15 +2688,17 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
-			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
-			return this.moveBy(x - o_x, y - o_y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 
 		this.center = function(){
-			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
-			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
-			return {x:o_x, y:o_y};
+			var min_x = Math.min(x1,x2,x3);
+			var max_x = Math.max(x1,x2,x3);
+			var min_y = Math.min(y1,y2,y3);
+			var max_y = Math.max(y1,y2,y3);
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 
 		this.draw = function(senders, context, trace){
@@ -2728,15 +2774,17 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
-			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
-			return this.moveBy(x - o_x, y - o_y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 
 		this.center = function(){
-			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
-			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
-			return {x:o_x, y:o_y};
+			var min_x = Math.min(x1,x2,x3,c_x1,c_x2);
+			var max_x = Math.max(x1,x2,x3,c_x1,c_x2);
+			var min_y = Math.min(y1,y2,y3,c_y1,c_y2);
+			var max_y = Math.max(y1,y2,y3,c_y1,c_y2);
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 
 		this.draw = function(senders, context, trace){
@@ -2805,13 +2853,17 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x1, y - this.y1);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
-			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
-			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
-			return {x:o_x, y:o_y};
+			var min_x = Math.min(x1,x2,x3,c_x);
+			var max_x = Math.max(x1,x2,x3,c_x);
+			var min_y = Math.min(y1,y2,y3,c_y);
+			var max_y = Math.max(y1,y2,y3,c_y);
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 
 		this.draw = function(senders, context, trace){
@@ -2900,11 +2952,20 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
-			return {x:this.x, y:this.y};
+			if (this.clipWidth == undefined || this.clipHeight == undefined)
+				return {x:this.x, y:this.y};
+			
+			var min_x = this.x;
+			var max_x = this.x + this.clipWidth;
+			var min_y = this.y;
+			var max_y = this.y + this.clipHeight;
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 
 		this.draw = function(senders, context, trace){
@@ -3048,11 +3109,20 @@ Canvas.Drawing = function(canvas){
 			
 			this.moveTo = function(x, y){
 				if (isNaN(x) || isNaN(y)) return false;
-				return this.moveBy(x - this.x, y - this.y);
+				var c = this.center();
+				return this.moveBy(x - c.x, y - c.y);
 			};
 			
 			this.center = function(){
-				return {x:this.x, y:this.y};
+				if (this.clipWidth == undefined || this.clipHeight == undefined)
+					return {x:this.x, y:this.y};
+				
+				var min_x = this.x;
+				var max_x = this.x + this.clipWidth;
+				var min_y = this.y;
+				var max_y = this.y + this.clipHeight;
+				
+				return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 			};
 			
 			this.draw = function(senders, context, trace){
@@ -3117,11 +3187,20 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
-			return {x:this.x, y:this.y};
+			if (this.clipWidth == undefined || this.clipHeight == undefined)
+				return {x:this.x, y:this.y};
+			
+			var min_x = this.x;
+			var max_x = this.x + this.width();
+			var min_y = this.y;
+			var max_y = this.y + this.height();
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 		
 		/**
@@ -3152,14 +3231,7 @@ Canvas.Drawing = function(canvas){
 			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
 	
 			if (trace) {
-				var attributes = this.font.split(" ");
-				var height;
-				for (var attribute in attributes) {
-					if (attributes[attribute].match(/^\d+px$/i)){
-						height = attributes[attribute].slice(0, -2);
-						break;
-					}
-				}
+				var height = this.height();
 	
 				context.strokeStyle = "transparent";
 				context.beginPath();
@@ -3230,6 +3302,18 @@ Canvas.Drawing = function(canvas){
 			
 			return textMetrics.width;
 		};
+		
+		this.height = function(){
+			var attributes = this.font.split(" ");
+			var height;
+			for (var attribute in attributes) {
+				if (attributes[attribute].match(/^\d+px$/i)){
+					height = attributes[attribute].slice(0, -2);
+					break;
+				}
+			}
+			return height;
+		};
 	
 		return true;
 	};
@@ -3263,7 +3347,8 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
@@ -3383,7 +3468,8 @@ Canvas.Drawing = function(canvas){
 		
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			return this.moveBy(x - this.x, y - this.y);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
@@ -3536,13 +3622,29 @@ Canvas.Drawing = function(canvas){
 
 		this.moveTo = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
-			if (this.points.length == 0) return false;
-			return this.moveBy(x - this.points[0].x, y - this.points[0].y1);
+			var c = this.center();
+			return this.moveBy(x - c.x, y - c.y);
 		};
 		
 		this.center = function(){
 			if (this.points.length == 0) return false;
-			return {x:this.points[0].x, y:this.points[0].y};
+			var xs = "";
+			var ys = "";
+			for (var point in this.points)
+				if (points[point]) {
+					xs = "," + points[point].x;
+					ys = "," + points[point].y;
+				}
+			
+			xs = xs.substring(1);
+			ys = ys.substring(1);
+			
+			var min_x = eval("Math.min("+x2+")");
+			var max_x = eval("Math.max("+x2+")");
+			var min_y = eval("Math.min("+y2+")");
+			var max_y = eval("Math.max("+y2+")");
+			
+			return {x:(min_x+max_x)/2, y:(min_y+max_y)/2};
 		};
 
 		this.draw = function(senders, context, trace){

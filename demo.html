@@ -20,7 +20,7 @@ var clock = {
 	init : function(){
 		// Add the 12 ticks for the hours to the clock
 		for (i=0; i<12; i++){
-			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
+			var tick = new $Line(150, 0, 150, 20);
 			// Move the pivot point of the tick to the centre of the clock
 			tick.pivoty = 150;
 			tick.stroke = "lightGrey";
@@ -30,60 +30,30 @@ var clock = {
 		}
 
 		// Create the three hand for the clock
-		var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
+		var hour_hand = new $Line(150, 150, 150, 100);
 		hour_hand.stroke = "darkGrey";
 		hour_hand.strokeWidth = 10;
 		hour_hand.strokeCap = "round";
 		hour_hand.layer = 1;
-		hour_hand.dragable = true;
-		// hour_hand.onRelease = function(){alert("hit")};
 		clock.drawing.add(hour_hand);
 
-		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
+		var minute_hand = new $Line(150, 150, 150, 50);	
 		minute_hand.stroke = "grey";
 		minute_hand.strokeWidth = 5;
 		minute_hand.strokeCap = "round";
 		minute_hand.layer = 2;
 		clock.drawing.add(minute_hand);
 	
-		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
+		var second_hand = new $Line(150, 150, 150, 20);
 		second_hand.strokeWidth = 1;
 		second_hand.layer = 1;
 		clock.drawing.add(second_hand);
 
-		var group = new Canvas.Palette.Group(150,85);
-		group.rotation = 190;
-		var ha = new Canvas.Palette.HitArea(0,0, 100,0, 100,100, 0,100);
-		group.setHitArea(ha);
-		group.onRelease = function(){alert("Hit the group!");}
-		// group.xscale = 200;
-		clock.drawing.add(group);
-
-		var group2 = new Canvas.Palette.Group(100,100);
-		group2.rotation = 45;
-		group2.xscale = 50;
-		group.add(group2);
-
-		var group3 = new Canvas.Palette.Group(-100,-100);
-		group3.rotation = -25;
-		// group2.xscale = 50;
-		group2.add(group3);
-
-		var r = new $Rectangle(50, 50, 50, 50);
-		clock.drawing.add(r);
-		r.onDrop = function(){
-			alert("Drop!");
-		}
-		
 		// Add the logo text
-		var text = new $Text(0, 0, "Canvas API");
+		var text = new $Text(150, 85, "Canvas API");
 		text.align = "center";
 		text.fill = "lightGrey";
-		text.dragable = true;
-		text.rotation = 50;
-		text.setHitArea(ha);
-		group3.add(text);
-//		clock.drawing.add(text);
+		clock.drawing.add(text);
 
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){
