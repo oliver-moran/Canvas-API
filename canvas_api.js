@@ -601,15 +601,43 @@ Canvas.Drawing = function(canvas){
 
 		// loop through the objects
 		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
-			if (layers[i-1] instanceof Canvas.Palette.Group){ // group
-				
-				layers[i-1].beforeDrawObject(layers[i-1].x+layers[i-1].pivotx, layers[i-1].y+layers[i-1].pivoty, [], __this.context, false);
+			
+			// all objects
+			layers[i-1].draw([this], __this.context, true); // trance each of the objects
+
+			if (acceptsMouseEvents(layers[i-1]) && __this.context.isPointInPath(x, y)) {
+				if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+					// XXX: We need to take account for masks. This is a hacky way of doing it:
+					// Normally the mask is drawn first but in debug mode the mask is draw 
+					// second so that it can be seen above the object. What we do here is 
+					// flip that sequence around by toggling debug mode. If we get a hit in
+					// both modes then we got a hit on the intersection between the object
+					// and the mask. We should probably replace this with a less hacky method
+					// that does the same thing but this will work for now.
+					var tmp_debug = Canvas.debug;
+					Canvas.debug = (Canvas.debug === true) ? false : true;
+					layers[i-1].draw([this], __this.context, true); // trance each of the objects
+					if (__this.context.isPointInPath(x, y)) {
+						Canvas.debug = tmp_debug;
+						return {object:layers[i-1], angle:angle};
+					}
+					Canvas.debug = tmp_debug;
+				} else {
+					return {object:layers[i-1], angle:angle};
+				}
+			}
+
+			// groups
+			if (layers[i-1] instanceof Canvas.Palette.Group){ 
+				// set the matrix (this is normally done as part of the group draw method)
+				__this.context.translate(layers[i-1].x+layers[i-1].pivotx, layers[i-1].y+layers[i-1].pivoty);
+				__this.context.rotate(layers[i-1].rotation * Math.PI/180);
+				__this.context.transform(layers[i-1].xscale/100, (layers[i-1].xskew * Math.PI/180), (layers[i-1].yskew * -Math.PI/180), layers[i-1].yscale/100, 0, 0);
 				__this.context.translate(-layers[i-1].pivotx, -layers[i-1].pivoty);
 				
-				var hit_object = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation).object;
-
+				var hit = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation);
 				
-				if (hit_object) {
+				if (hit) {
 					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
 						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
 						var tmp_debug = Canvas.debug;
@@ -618,47 +646,30 @@ Canvas.Drawing = function(canvas){
 						if (__this.context.isPointInPath(x, y)) {
 							Canvas.debug = tmp_debug;
 							
+							// reset the matrix
 							__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
-							layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
+							__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
+							__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
+							__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 
-							return {object:hit_object, angle:angle+layers[i-1].rotation};
+							return {object:hit.object, angle:hit.angle};
 						}
 						Canvas.debug = tmp_debug;
 					} else {
-						
+						// reset the matrix
 						__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
-						layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
+						__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
+						__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
+						__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 
-						return {object:hit_object, angle:angle+layers[i-1].rotation};
+						return {object:hit.object, angle:hit.angle};
 					}
 				}
-				
+				// reset the matrix
 				__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
-				layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
-				
-			} else {
-				layers[i-1].draw([this], __this.context, true); // trance each of the objects
-				if (acceptsMouseEvents(layers[i-1]) && __this.context.isPointInPath(x, y)) {
-					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
-						// XXX: We need to take account for masks. This is a hacky way of doing it:
-						// Normally the mask is drawn first but in debug mode the mask is draw 
-						// second so that it can be seen above the object. What we do here is 
-						// flip that sequence around by toggling debug mode. If we get a hit in
-						// both modes then we got a hit on the intersection between the object
-						// and the mask. We should probably replace this with a less hacky method
-						// that does the same thing but this will work for now.
-						var tmp_debug = Canvas.debug;
-						Canvas.debug = (Canvas.debug === true) ? false : true;
-						layers[i-1].draw([this], __this.context, true); // trance each of the objects
-						if (__this.context.isPointInPath(x, y)) {
-							Canvas.debug = tmp_debug;
-							return {object:layers[i-1], angle:angle};
-						}
-						Canvas.debug = tmp_debug;
-					} else {
-						return {object:layers[i-1], angle:angle};
-					}
-				}
+				__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
+				__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
+				__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 			}
 		}
 		
@@ -3717,10 +3728,24 @@ Canvas.Drawing = function(canvas){
 })();
 
 
-
-
-
-
+// SHORTCUT VARIABLES
+var $Arc = Canvas.Palette.Arc;
+var $Audio = Canvas.Palette.Audio;
+var $Bezier = Canvas.Palette.Bezier;
+var $Circle = Canvas.Palette.Circle;
+var $Gradient = Canvas.Palette.Gradient;
+var $Group = Canvas.Palette.Group;
+var $HitArea = Canvas.Palette.HitArea;
+var $Image = Canvas.Palette.Image;
+var $Line = Canvas.Palette.Line;
+var $Mask = Canvas.Palette.Mask;
+var $Pattern = Canvas.Palette.Pattern;
+var $Polygon = Canvas.Palette.Polygon;
+var $Quadratic = Canvas.Palette.Quadratic;
+var $Radial = Canvas.Palette.Radial;
+var $Rectangle = Canvas.Palette.Rectangle;
+var $Text = Canvas.Palette.Text;
+var $Video = Canvas.Palette.Video;
 
 
 /*

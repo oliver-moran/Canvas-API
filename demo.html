@@ -51,11 +51,39 @@ var clock = {
 		second_hand.layer = 1;
 		clock.drawing.add(second_hand);
 
+		var group = new Canvas.Palette.Group(150,85);
+		group.rotation = 190;
+		var ha = new Canvas.Palette.HitArea(0,0, 100,0, 100,100, 0,100);
+		group.setHitArea(ha);
+		group.onRelease = function(){alert("Hit the group!");}
+		// group.xscale = 200;
+		clock.drawing.add(group);
+
+		var group2 = new Canvas.Palette.Group(100,100);
+		group2.rotation = 45;
+		group2.xscale = 50;
+		group.add(group2);
+
+		var group3 = new Canvas.Palette.Group(-100,-100);
+		group3.rotation = -25;
+		// group2.xscale = 50;
+		group2.add(group3);
+
+		var r = new $Rectangle(50, 50, 50, 50);
+		clock.drawing.add(r);
+		r.onDrop = function(){
+			alert("Drop!");
+		}
+		
 		// Add the logo text
-		var text = new Canvas.Palette.Text(0, 0, "Canvas API");
+		var text = new $Text(0, 0, "Canvas API");
 		text.align = "center";
 		text.fill = "lightGrey";
-		clock.drawing.add(text);
+		text.dragable = true;
+		text.rotation = 50;
+		text.setHitArea(ha);
+		group3.add(text);
+//		clock.drawing.add(text);
 
 		// Start the animation (the default frame rate in 12 fps)
 		clock.drawing.onBeforeDraw = function(_this){
