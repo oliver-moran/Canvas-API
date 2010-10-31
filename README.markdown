@@ -15,7 +15,7 @@ The functionality offered by the library is comparable to applications such as A
 * Grouping, layering and masking of drawings, images, video and text.
 * Matrix transformation of all objects and groups of objects (translation, rotation, skew, scale).
 * Baked in animations and tweening with multiple effects and frame event callbacks (such as `onDraw` and `onBeforeDraw`).
-* Mouse and touch events on all objects (such as `onPress` or `onRelease`) and key press events.
+* Mouse and touch events on all objects (such as `onPress` or `onRelease`), drag and drop support and key press events.
 * Copy, paste and saving of canvas images as files.
 * Built-in support for the Pixastic image effects library by default (blur, sepia, invert, etc.) or other user-definable image effects libraries.
 

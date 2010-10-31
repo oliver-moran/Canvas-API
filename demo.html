@@ -17,56 +17,57 @@
 Canvas.debug = true;
 
 var clock = {
-		init : function(){
-			// Add the 12 ticks for the hours to the clock
-			for (i=0; i<12; i++){
-				var tick = new Canvas.Palette.Line(150, 0, 150, 20);
-				// Move the pivot point of the tick to the centre of the clock
-				tick.pivoty = 150;
-				tick.stroke = "lightGrey";
-				// Rotate the tick so that it there are twelve evenly spaced around the clock face
-				tick.rotation = (360/12)*i;
-				clock.drawing.add(tick);
-			}
-
-			// Create the three hand for the clock
-			var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
-			hour_hand.stroke = "darkGrey";
-			hour_hand.strokeWidth = 10;
-			hour_hand.strokeCap = "round";
-			hour_hand.layer = 1;
-			clock.drawing.add(hour_hand);
-
-			var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
-			minute_hand.stroke = "grey";
-			minute_hand.strokeWidth = 5;
-			minute_hand.strokeCap = "round";
-			minute_hand.layer = 2;
-			clock.drawing.add(minute_hand);
-		
-			var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
-			second_hand.strokeWidth = 1;
-			second_hand.layer = 1;
-			clock.drawing.add(second_hand);
-			
-			// Add the logo text
-			var text = new Canvas.Palette.Text(150, 85, "Canvas API");
-			text.align = "center";
-			text.fill = "lightGrey";
-			clock.drawing.add(text, "text");
-			
-			// Start the animation (the default frame rate in 12 fps)
-			clock.drawing.onBeforeDraw = function(_this){
-				// Get the current time and rotate each hand accordingly
-				var time = new Date();
-				hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
-				minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
-				second_hand.rotation = (360/60)*time.getSeconds();
-			}
+	init : function(){
+		// Add the 12 ticks for the hours to the clock
+		for (i=0; i<12; i++){
+			var tick = new Canvas.Palette.Line(150, 0, 150, 20);
+			// Move the pivot point of the tick to the centre of the clock
+			tick.pivoty = 150;
+			tick.stroke = "lightGrey";
+			// Rotate the tick so that it there are twelve evenly spaced around the clock face
+			tick.rotation = (360/12)*i;
+			clock.drawing.add(tick);
 		}
+
+		// Create the three hand for the clock
+		var hour_hand = new Canvas.Palette.Line(150, 150, 150, 100);
+		hour_hand.stroke = "darkGrey";
+		hour_hand.strokeWidth = 10;
+		hour_hand.strokeCap = "round";
+		hour_hand.layer = 1;
+		hour_hand.dragable = true;
+		// hour_hand.onRelease = function(){alert("hit")};
+		clock.drawing.add(hour_hand);
+
+		var minute_hand = new Canvas.Palette.Line(150, 150, 150, 50);	
+		minute_hand.stroke = "grey";
+		minute_hand.strokeWidth = 5;
+		minute_hand.strokeCap = "round";
+		minute_hand.layer = 2;
+		clock.drawing.add(minute_hand);
+	
+		var second_hand = new Canvas.Palette.Line(150, 150, 150, 20);
+		second_hand.strokeWidth = 1;
+		second_hand.layer = 1;
+		clock.drawing.add(second_hand);
+
+		// Add the logo text
+		var text = new Canvas.Palette.Text(0, 0, "Canvas API");
+		text.align = "center";
+		text.fill = "lightGrey";
+		clock.drawing.add(text);
+
+		// Start the animation (the default frame rate in 12 fps)
+		clock.drawing.onBeforeDraw = function(_this){
+			// Get the current time and rotate each hand accordingly
+			var time = new Date();
+			hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
+			minute_hand.rotation = (360/60)*time.getMinutes()+((360/60)/60)*time.getSeconds();
+			second_hand.rotation = (360/60)*time.getSeconds();
+		};
 	}
 }
-	
+
 </script>
 
 </body>

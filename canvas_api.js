@@ -128,12 +128,12 @@ var Canvas = {
 				return degrees * Math.PI/180;
 			},
 			/**
-			 * Rotates a point around an origin by an angle.
+			 * Rotates a point around an origin by an angle. If no origin is given (0,0) will be assumed.
 			 * @function {public static Object} Canvas.Utils.rotatePoint
 			 * @param {Object} point The point to rotate.
 			 * @... {Number} x The x coordinate of the point.
 			 * @... {Number} y The y coordinate of the point.
-			 * @param {Object} origin The point to rotate.
+			 * @param {optional Object} origin The point to rotate.
 			 * @... {Number} x The x coordinate of the origin.
 			 * @... {Number} y The y coordinate of the origin.
 			 * @param {Number} degrees The angle to rotate the point in degrees.
@@ -142,7 +142,15 @@ var Canvas = {
 			 * @since 0.2
 			 */
 			rotatePoint : function(point, origin, degrees){
-				var radians = Utils.degrees2radians(degrees);
+				if (degrees == undefined) {
+					degrees = origin;
+					origin = {x:0, y:0};
+				}
+				if (typeof point != "object" || isNaN(point.x) || isNaN(point.y)
+					|| typeof origin != "object" || isNaN(origin.x) || isNaN(origin.y)
+					|| isNaN(degrees)) return false;
+					
+				var radians = Canvas.Utils.Geometry.degrees2radians(degrees);
 				var x = Math.cos(radians) * (point.x-origin.x) - Math.sin(radians) * (point.y-origin.y) + origin.x;
 				var y = Math.sin(radians) * (point.x-origin.x) + Math.cos(radians) * (point.y-origin.y) + origin.y;
 				
@@ -586,15 +594,22 @@ Canvas.Drawing = function(canvas){
 	// MOUSE EVENTS
 	
 	// takes layers because it is recursive (recurses through groups)
-	var checkForHit = function(x, y, layers){
+	var checkForHit = function(x, y, layers, angle){
 		// if no layers were given then use the scene
 		if (!layers) layers = sceneByLayer();
+		if (isNaN(angle)) angle = 0;
 
 		// loop through the objects
 		for (var i=layers.length; i>0; i--) { // go in reverse so we hit the top layer first
-			
 			if (layers[i-1] instanceof Canvas.Palette.Group){ // group
-				if (checkForHit(x, y, layers[i-1].membersByLayer())) {
+				
+				layers[i-1].beforeDrawObject(layers[i-1].x+layers[i-1].pivotx, layers[i-1].y+layers[i-1].pivoty, [], __this.context, false);
+				__this.context.translate(-layers[i-1].pivotx, -layers[i-1].pivoty);
+				
+				var hit_object = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation).object;
+
+				
+				if (hit_object) {
 					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
 						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
 						var tmp_debug = Canvas.debug;
@@ -602,13 +617,25 @@ Canvas.Drawing = function(canvas){
 						layers[i-1].draw([this], __this.context, true); // trance each of the objects
 						if (__this.context.isPointInPath(x, y)) {
 							Canvas.debug = tmp_debug;
-							return layers[i-1];
+							
+							__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
+							layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
+
+							return {object:hit_object, angle:angle+layers[i-1].rotation};
 						}
 						Canvas.debug = tmp_debug;
 					} else {
-						return layers[i-1];
+						
+						__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
+						layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
+
+						return {object:hit_object, angle:angle+layers[i-1].rotation};
 					}
 				}
+				
+				__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
+				layers[i-1].afterDrawObject(-(layers[i-1].x+layers[i-1].pivotx), -(layers[i-1].y+layers[i-1].pivoty), [], __this.context, false);
+				
 			} else {
 				layers[i-1].draw([this], __this.context, true); // trance each of the objects
 				if (acceptsMouseEvents(layers[i-1]) && __this.context.isPointInPath(x, y)) {
@@ -625,11 +652,11 @@ Canvas.Drawing = function(canvas){
 						layers[i-1].draw([this], __this.context, true); // trance each of the objects
 						if (__this.context.isPointInPath(x, y)) {
 							Canvas.debug = tmp_debug;
-							return layers[i-1];
+							return {object:layers[i-1], angle:angle};
 						}
 						Canvas.debug = tmp_debug;
 					} else {
-						return layers[i-1];
+						return {object:layers[i-1], angle:angle};
 					}
 				}
 			}
@@ -641,10 +668,12 @@ Canvas.Drawing = function(canvas){
 	
 	
 	var acceptsMouseEvents = function(obj){
-		return (typeof obj.onRelease == "function" 
+		return ((typeof obj.onRelease == "function" 
 			 || typeof obj.onPress == "function" 
 			 || typeof obj.onMouseOver == "function" 
-			 || obj.onMouseOut == "function");
+			 || typeof obj.onMouseOut == "function"
+			 || typeof obj.onDrop == "function"
+			 || obj.dragable == true) && obj != drag_object);
 	};
 	
 	/**
@@ -669,14 +698,33 @@ Canvas.Drawing = function(canvas){
 		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
 		var hit = checkForHit(x, y);
-		if (hit && hit.onRelease) hit.onRelease({x:x, y:y}, hit);
+		
+		if (drag_object) {
+			if (drag_object && drag_object.onDragStop) drag_object.onDragStop({x:x, y:y});
+			if (hit && hit.object && hit.object.onDrop) hit.object.onDrop({x:x, y:y}, drag_object);
+		} else if (hit && hit.object && hit.object.onRelease) hit.object.onRelease({x:x, y:y});
+		
+		drag_object = undefined;
+		last_drag_x = undefined;
+		last_drag_y = undefined;
+		drag_angle = undefined;
 	};
+	var drag_object = undefined;
+	var last_drag_x = undefined;
+	var last_drag_y = undefined;
+	var drag_angle = undefined;
 	this.context.canvas.onmousedown = function(e){
 		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
 		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
 		var hit = checkForHit(x, y);
-		if (hit && hit.onPress) hit.onPress({x:x, y:y}, hit);
+		if (hit && hit.onPress) hit.object.onPress({x:x, y:y});
+		if (hit && hit.object.dragable) {
+			drag_object = hit.object;
+			last_drag_x = x;
+			last_drag_y = y;
+			drag_angle = hit.angle;
+		}
 	};
 	this.context.canvas.onclick = function(e){
 		// click events
@@ -692,16 +740,42 @@ Canvas.Drawing = function(canvas){
 		__this.mousex = x;
 		__this.mousey = y;
 		
+		if (drag_object && !isNaN(last_drag_x) && !isNaN(last_drag_y)) {
+			if (drag_object.onDragStart) drag_object.onDragStart({x:x, y:y});
+			
+			var vector = Canvas.Utils.Geometry.rotatePoint({x:(x-last_drag_x), y:(y-last_drag_y)}, drag_angle*-1);
+			
+			/*
+			if (drag_object.dragLimitTop && vector.y < drag_object.dragLimitTop) vector.y = drag_object.dragLimitTop;
+			else if (drag_object.dragLimitBottom && vector.y > drag_object.dragLimitBottom) vector.y = drag_object.dragLimitBottom;
+			if (drag_object.dragLimitLeft && vector.x < drag_object.dragLimitLeft) vector.x = drag_object.dragLimitLeft;
+			else if (drag_object.dragLimitRight && vector.x > drag_object.dragLimitRight) vector.x = drag_object.dragLimitRight;
+			 */
+			drag_object.moveBy(vector.x, vector.y);
+
+			last_drag_x = x;
+			last_drag_y = y;
+
+			return;
+		}
+
 		var hit = checkForHit(x, y);
-		if (lastOverObject && lastOverObject.onMouseOut && hit != lastOverObject) lastOverObject.onMouseOut({x:x, y:y}, hit); 
+
+		if (lastOverObject && lastOverObject.onMouseOut && hit.object != lastOverObject) lastOverObject.onMouseOut({x:x, y:y}); 
 		if (hit) {
-			__this.canvas.style.cursor = hit.cursor;
-			if (hit.onMouseOver && hit != lastOverObject) hit.onMouseOver({x:x, y:y}, hit); 
-			lastOverObject = hit;
+			__this.canvas.style.cursor = hit.object.cursor;
+			if (hit.object.onMouseOver && hit.object != lastOverObject) hit.object.onMouseOver({x:x, y:y}); 
+			lastOverObject = hit.object;
 		} else {
 			__this.canvas.style.cursor = "default";			
 			lastOverObject = undefined;
 		}
+	};
+	this.context.canvas.onmouseout = function(e){
+		drag_object = undefined;
+		drag_x = undefined;
+		drag_y = undefined;
+		drag_angle = undefined;
 	};
 	
 	
@@ -1326,7 +1400,7 @@ Canvas.Drawing = function(canvas){
 	
 	/**
 	 * The prototypical Palette Object. All Palette Objects (except Gradients) inherit these values, although some properties are reduntant for certain objects.
-	 * @constructor {public static} Palette.Object
+	 * @constructor {private static} Palette.Object
 	 * @author Oliver Moran
 	 * @since 0.2
 	 */
@@ -1558,7 +1632,78 @@ Canvas.Drawing = function(canvas){
 		 * @since 0.2
 		 */
 		this.cursor = "pointer";
-	
+		/**
+		 * If set to true then the item will be dragable by clicking and dragging on it.
+		 * @property {write read Boolean} Palette.Object.dragable
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		this.dragable = false;
+		/**
+		 * An event fired when a dragged object is dropped on this object.
+		 * @function {public abstract void} Palette.Object.onDrop
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @param {Object} object The dropeed object.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onDrop = undefined;
+		/**
+		 * An event fired when a dragable object starts being dragged.
+		 * @function {public abstract void} Palette.Object.onDragStart
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onDragStart = undefined;
+		/**
+		 * An event fired when a dragable object stops being dragged.
+		 * @function {public abstract void} Palette.Object.onDragStop
+		 * @param {Object} mouse An object describing the mouse position.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @... {Number} x The mouse x position of mouse relative to the canvas.
+		 * @return Nothing.
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.onDragStop = undefined;
+		/**
+		 * The top-most limit that an object may be dragged to.
+		 * @property {write read Number} Palette.Object.dragLimitRight
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.dragLimitTop = undefined;
+		/**
+		 * The bottom-most limit that an object may be dragged to.
+		 * @property {write read Number} Palette.Object.dragLimitBottom
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.dragLimitBottom = undefined;
+		/**
+		 * The left-most limit that an object may be dragged to.
+		 * @property {write read Number} Palette.Object.dragLimitLeft
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.dragLimitLeft = undefined;
+		/**
+		 * The right-most limit that an object may be dragged to.
+		 * @property {write read Number} Palette.Object.dragLimitRight
+		 * @author Oliver Moran
+		 * @since 0.2
+		 */
+		// this.dragLimitRight = undefined;
+
+		
+		
 		
 		// COMMON METHODS
 		
@@ -1603,7 +1748,6 @@ Canvas.Drawing = function(canvas){
 		 * @param {Object} mouse An object describing the mouse position.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
-		 * @param {Object} object The object that was clicked.
 		 * @return Nothing.
 		 * @author Oliver Moran
 		 * @since 0.2
@@ -1615,7 +1759,6 @@ Canvas.Drawing = function(canvas){
 		 * @param {Object} mouse An object describing the mouse position.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
-		 * @param {Object} object The object that was clicked.
 		 * @return Nothing.
 		 * @author Oliver Moran
 		 * @since 0.2
@@ -1627,7 +1770,6 @@ Canvas.Drawing = function(canvas){
 		 * @param {Object} mouse An object describing the mouse position.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
-		 * @param {Object} object The object that the mouse was moved in to.
 		 * @return Nothing.
 		 * @author Oliver Moran
 		 * @since 0.2
@@ -1639,7 +1781,6 @@ Canvas.Drawing = function(canvas){
 		 * @param {Object} mouse An object describing the mouse position.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
 		 * @... {Number} x The mouse x position of mouse relative to the canvas.
-		 * @param {Object} object The object that the mouse was moved out of.
 		 * @return Nothing.
 		 * @author Oliver Moran
 		 * @since 0.2
@@ -2195,6 +2336,26 @@ Canvas.Drawing = function(canvas){
 		this.x2 = x2;
 		this.y2 = y2;
 	
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x1 += x;
+			this.y1 += y;
+			this.x2 += x;
+			this.y2 += y;
+			
+			return true;
+		};
+
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x1, y - this.y1);
+		};
+
+		this.center = function(){
+			return {x:this.x1, y:this.y1};
+		};
+
 		// The private draw function
 		this.draw = function(senders, context, trace){
 			this.beforeDrawObject(this.x1+this.pivotx, this.y1+this.pivoty, senders, context, trace);
@@ -2254,6 +2415,29 @@ Canvas.Drawing = function(canvas){
 			this.addPoint(arguments[i], arguments[i+1]);
 		}
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			for (var point in this.points)
+				if (points[point]) {
+					points[point].x += x;
+					points[point].y += y;
+				}
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			if (this.points.length == 0) return false;
+			return this.moveBy(x - this.points[0].x, y - this.points[0].y);
+		};
+
+		this.center = function(){
+			if (this.points.length == 0) return false;
+			return {x:this.points[0].x, y:this.points[0].y};
+		};
+		
 		this.draw = function(senders, context, trace){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 			
@@ -2299,6 +2483,24 @@ Canvas.Drawing = function(canvas){
 		this.y = y;
 		this.width = width;
 		this.height = height;
+		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+		
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
 		
 		this.draw = function(senders, context, trace){
 			var w2 = this.width/2;
@@ -2350,6 +2552,24 @@ Canvas.Drawing = function(canvas){
 		this.y = y;
 		this.radius = radius;
 	
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
+
 		this.draw = function(senders, context, trace){
 			this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
 			
@@ -2398,6 +2618,32 @@ Canvas.Drawing = function(canvas){
 		this.y3 = y3;
 		this.radius = radius;
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+
+			this.x1 += x;
+			this.y1 += y;
+			this.x2 += x;
+			this.y2 += y;
+			this.x3 += x;
+			this.y3 += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
+			return this.moveBy(x - o_x, y - o_y);
+		};
+
+		this.center = function(){
+			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
+			return {x:o_x, y:o_y};
+		};
+
 		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x3)/2 + this.pivotx;
 			var o_y = (this.y1 + this.y3)/2 + this.pivoty;
@@ -2453,6 +2699,35 @@ Canvas.Drawing = function(canvas){
 		this.c_x2 = c_x2;
 		this.c_y2 = c_y2;
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+
+			this.x1 += x;
+			this.y1 += y;
+			this.x2 += x;
+			this.y2 += y;
+			
+			this.c_x1 += x;
+			this.c_y1 += y;
+			this.c_x2 += x;
+			this.c_y2 += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
+			return this.moveBy(x - o_x, y - o_y);
+		};
+
+		this.center = function(){
+			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
+			return {x:o_x, y:o_y};
+		};
+
 		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
 			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
@@ -2503,6 +2778,31 @@ Canvas.Drawing = function(canvas){
 		this.c_x = c_x;
 		this.c_y = c_y;
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+
+			this.x1 += x;
+			this.y1 += y;
+			this.x2 += x;
+			this.y2 += y;
+			
+			this.c_x += x;
+			this.c_y += y;
+		
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x1, y - this.y1);
+		};
+		
+		this.center = function(){
+			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
+			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
+			return {x:o_x, y:o_y};
+		};
+
 		this.draw = function(senders, context, trace){
 			var o_x = (this.x1 + this.x2)/2 + this.pivotx;
 			var o_y = (this.y1 + this.y2)/2 + this.pivoty;
@@ -2578,6 +2878,24 @@ Canvas.Drawing = function(canvas){
 			proc_image = image;
 		};
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+		
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
+
 		this.draw = function(senders, context, trace){
 			if (effect) { // we don't need to test for the library because of the try...catch
 				try{
@@ -2708,6 +3026,24 @@ Canvas.Drawing = function(canvas){
 				return this.video.duration;
 			};
 			
+			this.moveBy = function(x, y){
+				if (isNaN(x) || isNaN(y)) return false;
+				
+				this.x += x;
+				this.y += y;
+				
+				return true;
+			};
+			
+			this.moveTo = function(x, y){
+				if (isNaN(x) || isNaN(y)) return false;
+				return this.moveBy(x - this.x, y - this.y);
+			};
+			
+			this.center = function(){
+				return {x:this.x, y:this.y};
+			};
+			
 			this.draw = function(senders, context, trace){
 				this.beforeDrawObject(this.x+this.pivotx, this.y+this.pivoty, senders, context, trace);
 				
@@ -2758,6 +3094,24 @@ Canvas.Drawing = function(canvas){
 		// over ride the default values
 		this.fill = this.stroke;
 		this.stroke = "transparent";
+		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+		
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
 		
 		/**
 		 * Determines the text direction of the canvas tags in a document.
@@ -2887,6 +3241,24 @@ Canvas.Drawing = function(canvas){
 		this.x = x;
 		this.y = y;
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+		
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
+
 		var _members = {}; // an object that holds the group's memebrs
 		
 		/**
@@ -2988,6 +3360,24 @@ Canvas.Drawing = function(canvas){
 	
 		this.x = x;
 		this.y = y;
+		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x += x;
+			this.y += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			return this.moveBy(x - this.x, y - this.y);
+		};
+		
+		this.center = function(){
+			return {x:this.x, y:this.y};
+		};
 		
 		var _elements = {}; // an object that holds the masks elements
 		
@@ -3121,6 +3511,29 @@ Canvas.Drawing = function(canvas){
 			this.addPoint(arguments[i], arguments[i+1]);
 		}
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			for (var point in this.points)
+				if (points[point]) {
+					points[point].x += x;
+					points[point].y += y;
+				}
+			
+			return true;
+		};
+
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			if (this.points.length == 0) return false;
+			return this.moveBy(x - this.points[0].x, y - this.points[0].y1);
+		};
+		
+		this.center = function(){
+			if (this.points.length == 0) return false;
+			return {x:this.points[0].x, y:this.points[0].y};
+		};
+
 		this.draw = function(senders, context, trace){
 			if (this.points.length < 2) return; // get out of here if we don't have enough points
 	
@@ -3173,6 +3586,22 @@ Canvas.Drawing = function(canvas){
 		this.x2 = x2;
 		this.y2 = y2;
 		
+		this.moveBy = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			
+			this.x1 += x;
+			this.y1 += y;
+			this.x2 += x;
+			this.y2 += y;
+			
+			return true;
+		};
+		
+		this.moveTo = function(x, y){
+			if (isNaN(x) || isNaN(y)) return false;
+			this.moveBy(x - this.x1, y - this.y1);
+		};
+
 		this.draw = function(senders, context){
 			var x1 = this.x1 - senders[senders.length-1].pivotx;
 			var y1 = this.y1 - senders[senders.length-1].pivoty;
@@ -3286,8 +3715,6 @@ Canvas.Drawing = function(canvas){
 	
 // END OF PALETTE SCOPE
 })();
-
-
 
 
 
@@ -3495,5 +3922,3 @@ Canvas.Drawing = function(canvas){
 			}
 	});
 })();
-
-
