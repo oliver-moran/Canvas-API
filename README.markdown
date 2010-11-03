@@ -26,7 +26,7 @@ Canvas API uses only expected HTML5 standard JavaScript[2] W3C¨ and is supported
 * Chrome¨
 * Android¨
 * Opera¨
-* Camino¨ (excluding text rendering, video and audio functions)
+* Camino¨ (excluding text, video and audio functions)
 
 Canvas API is also supported by the beta version of Internet Explorer¨ 9 and works on Windows¨, Mac¨, Linux¨, iPhone¨ and Android¨ as well as other PCs and mobile devices. 
 

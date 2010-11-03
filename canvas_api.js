@@ -19,6 +19,25 @@
  * 
  */
 
+// Fix for Firefox's isPointInPath method (or other browsers' implementation depending on one's perspective).
+// See Mozilla bug 405300 <https://bugzilla.mozilla.org/show_bug.cgi?id=405300>
+(function(){	
+	// Test how the isPointInPath method is implemented...
+	var context = document.createElement("canvas").getContext( "2d" );
+	context.translate(50, 0);
+	context.strokeRect(0, 0, 50, 50);
+	if (!context.isPointInPath(75, 25)){
+		// ...if it is implemented the Firefox way then apply a "fix" (or "non-fix") to the CanvasRenderingContext2D prototype
+		CanvasRenderingContext2D.prototype.isPointInPath2 = CanvasRenderingContext2D.prototype.isPointInPath;
+		CanvasRenderingContext2D.prototype.isPointInPath = function(x, y) {
+				this.save();
+				this.setTransform(1, 0, 0, 1, 0, 0);
+				var result = this.isPointInPath2(x, y);
+				this.restore();
+				return result;
+			};
+	}
+}());
 
 /**
  * Contains the source code of the Canvas API. 
@@ -444,13 +463,9 @@ Canvas.Drawing = function(canvas){
 			for (var prop in this.scene[obj]){
 				try {
 					// Opera throws exceptions around instanceof, we we dance around it
-					if (this.scene[obj].audio != undefined && !this.scene[obj].audio.complete)
-						c++; // audio
-					else if (this.scene[obj].video != undefined && !this.scene[obj].video.complete)
-						c++; // audio
-					else if (this.scene[obj].image != undefined && !this.scene[obj].image.complete)
-						c++; // images
-					else if (this.scene[obj][prop].image && !this.scene[obj][prop].image.complete)
+					if (this.scene[obj].isComplete && !this.scene[obj].isComplete())
+						c++; // images/audio/video
+					else if (this.scene[obj][prop] && this.scene[obj][prop].isComplete && !this.scene[obj][prop].isComplete())
 						c++; // fills
 				} catch(err){
 					// An exception may be throw owing to properties appearing and disappearing asynchronously.
@@ -542,6 +557,7 @@ Canvas.Drawing = function(canvas){
 		show : function(){
 			__this.context.fillStyle = "lightGrey";
 			__this.context.globalAlpha = 0.75;
+			__this.context.shadowColor = "transparent";
 			__this.context.fillRect(0, __this.canvas.height-15, __this.canvas.width, 15);
 			
 			__this.context.font = "10px 'Courier', monospace";
@@ -624,6 +640,7 @@ Canvas.Drawing = function(canvas){
 					}
 					Canvas.debug = tmp_debug;
 				} else {
+					// alert(2);
 					return {object:layers[i-1], angle:angle, scale:scale};
 				}
 			}
@@ -639,40 +656,29 @@ Canvas.Drawing = function(canvas){
 				// FIXME: This does not work properly when groups are skewed (either explicitly or because the matrix is scaled/rotated)
 				var hit = checkForHit(x, y, layers[i-1].membersByLayer(), angle+layers[i-1].rotation+layers[i-1].rotation, 
 										{x:layers[i-1].xscale*(scale.x/100), y:layers[i-1].yscale*(scale.y/100)});
-				
-				if (hit) {
-					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
-						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
-						var tmp_debug = Canvas.debug;
-						Canvas.debug = (Canvas.debug === true) ? false : true;
-						layers[i-1].draw([this], __this.context, true); // trance each of the objects
-						if (__this.context.isPointInPath(x, y)) {
-							Canvas.debug = tmp_debug;
-							
-							// reset the matrix
-							__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
-							__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
-							__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
-							__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
 
-							return {object:hit.object, angle:hit.angle, scale:hit.scale};
-						}
-						Canvas.debug = tmp_debug;
-					} else {
-						// reset the matrix
-						__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
-						__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
-						__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
-						__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
-
-						return {object:hit.object, angle:hit.angle, scale:hit.scale};
-					}
-				}
 				// reset the matrix
 				__this.context.translate(layers[i-1].pivotx, layers[i-1].pivoty);
 				__this.context.transform(100/layers[i-1].xscale, (layers[i-1].xskew * -Math.PI/180), (layers[i-1].yskew * Math.PI/180), 100/layers[i-1].yscale, 0, 0);
 				__this.context.rotate(layers[i-1].rotation * -Math.PI/180);
 				__this.context.translate((layers[i-1].x+layers[i-1].pivotx)*-1, (layers[i-1].y+layers[i-1].pivoty)*-1);
+
+				if (hit) {
+					if (layers[i-1].mask instanceof Canvas.Palette.Mask) {
+						// This is a kind of hackish way of finding the intersection of a mask and objects, see the description below
+						var tmp_debug = Canvas.debug;
+						Canvas.debug = (Canvas.debug === true) ? false : true;
+						
+						layers[i-1].draw([this], __this.context, true); // trance each of the objects
+						if (__this.context.isPointInPath(x, y)) {
+							Canvas.debug = tmp_debug;
+							return {object:hit.object, angle:hit.angle, scale:hit.scale};
+						}
+						Canvas.debug = tmp_debug;
+					} else {
+						return {object:hit.object, angle:hit.angle, scale:hit.scale};
+					}
+				}
 			}
 		}
 		
@@ -714,9 +720,9 @@ Canvas.Drawing = function(canvas){
 		var hit = checkForHit(x, y);
 		
 		if (drag_object) {
-			if (drag_object && drag_object.onDragStop) drag_object.onDragStop({x:x, y:y});
+			if (drag_object && drag_object.onDragStop) drag_object.onDragStop({x:x, y:y}, hit.object);
 			if (hit && hit.object && hit.object.onDrop) hit.object.onDrop({x:x, y:y}, drag_object);
-		} else if (hit && hit.object && hit.object.onRelease) hit.object.onRelease({x:x, y:y});
+		} else if (hit && hit.object && hit.object.onRelease) hit.object.onRelease({x:x, y:y, object:hit.object});
 		
 		drag_object = undefined;
 		last_drag_x = undefined;
@@ -738,7 +744,7 @@ Canvas.Drawing = function(canvas){
 		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
 		
 		var hit = checkForHit(x, y);
-		if (hit && hit.onPress) hit.object.onPress({x:x, y:y});
+		if (hit && hit.onPress) hit.object.onPress({x:x, y:y, object:hit.object});
 		if (hit && hit.object.dragable) {
 			drag_object = hit.object;
 			last_drag_x = x;
@@ -753,6 +759,7 @@ Canvas.Drawing = function(canvas){
 		// click events
 	};
 	var lastOverObject;
+		 
 	this.context.canvas.onmousemove = function(e){
 		// move over events
 		// mouse out events
@@ -789,10 +796,10 @@ Canvas.Drawing = function(canvas){
 
 		var hit = checkForHit(x, y);
 
-		if (lastOverObject && lastOverObject.onMouseOut && hit.object != lastOverObject) lastOverObject.onMouseOut({x:x, y:y}); 
+		if (lastOverObject && lastOverObject.onMouseOut && hit.object != lastOverObject) lastOverObject.onMouseOut({x:x, y:y, object:lastOverObject}); 
 		if (hit) {
 			__this.canvas.style.cursor = hit.object.cursor;
-			if (hit.object.onMouseOver && hit.object != lastOverObject) hit.object.onMouseOver({x:x, y:y}); 
+			if (hit.object.onMouseOver && hit.object != lastOverObject) hit.object.onMouseOver({x:x, y:y, object:hit.object}); 
 			lastOverObject = hit.object;
 		} else {
 			__this.canvas.style.cursor = "default";			
@@ -800,6 +807,13 @@ Canvas.Drawing = function(canvas){
 		}
 	};
 	this.context.canvas.onmouseout = function(e){
+		var x = (e.offsetX) ? e.offsetX : e.layerX - __this.canvas.offsetLeft;
+		var y = (e.offsetY) ? e.offsetY : e.layerY - __this.canvas.offsetTop;
+
+		if (lastOverObject && lastOverObject.onMouseOut)
+			lastOverObject.onMouseOut({x:x, y:y, object:lastOverObject}); 
+		lastOverObject = undefined;
+
 		drag_object = undefined;
 		drag_x = undefined;
 		drag_y = undefined;
@@ -1261,7 +1275,6 @@ Canvas.Drawing = function(canvas){
 	 */
 	Canvas.Library.addImage = function(src){
 		var image = new Image();
-		
 		image.onload = function(){
 			// loaded
 		};
@@ -1504,11 +1517,11 @@ Canvas.Drawing = function(canvas){
 		this.pivoty = 0;
 		/**
 		 * The x offset of the Palette object's shadow.
-		 * @property {read write Number} Palette.Object.shadowColor
+		 * @property {read write Number} Palette.Object.shadow
 		 * @author Oliver Moran
 		 * @since 0.2
 		 */
-		this.shadowColor = "transparent";
+		this.shadow = "transparent";
 		/**
 		 * The x offset of the Palette object's shadow.
 		 * @property {read write Number} Palette.Object.shadowx
@@ -1895,7 +1908,7 @@ Canvas.Drawing = function(canvas){
 				context.shadowBlur = this.shadowBlur;
 				
 				context.strokeStyle = this.stroke;
-				context.shadowColor = this.shadowColor;
+				context.shadowColor = this.shadow;
 				if (this.fill instanceof Canvas.Palette.Gradient || 
 					this.fill instanceof Canvas.Palette.Radial || 
 					this.fill instanceof Canvas.Palette.Pattern){
@@ -2025,6 +2038,8 @@ Canvas.Drawing = function(canvas){
 			 * @... {optional Number} delay A delay in seconds before the tween begins.
 			 * @... {optional Function} onComplete A function called on completion of the tween.
 			 * @... {optional Object} onCompleteParams A custom object to be passed as a second argument to the onComplete function. The first argument is an object that describes the tween.
+			 * @... {optional Function} onCancel A function called on the cancellatino of the tween by another contradictary call.
+			 * @... {optional Object} onCancelParams A custom object to be passed as a second argument to the onCancel function. The first argument is an object that describes the tween.
 			 * @... {optional Function} onUpdate A function called on a each frame of the animation.
 			 * @... {optional Object} onUpdateParams A custom object to be passed as a second argument to the onUpdate function. The first argument is an object that describes the tween.
 			 * @... {optional Function} onStart A function called on start of the tween.
@@ -2077,6 +2092,35 @@ Canvas.Drawing = function(canvas){
 		                }
 		            }
 	
+		            // START OF CODE ADDED BY OLIVER MORAN
+		            // Added by Oliver Moran, 2010
+		            // Removes duplicate properties 
+		            for (var i = 0; i < self.objects.length; i++) {
+			        	if (self.objects[i].target == o.target) {
+			        		var c = 0;
+			                for (var property in self.objects[i].targetPropeties) {
+			                	c++;
+			                	for (var new_property in o.targetPropeties){
+			                		if (property == new_property) {
+			                			delete self.objects[i].targetPropeties[property]; // delete this property from the object
+					                	c--;
+			                		}
+			                	}
+			                	if (c == 0) { // the object is empty so delete it completely
+			                		if (typeof self.objects[i].onCancel == 'function'){
+					                    if (self.objects[i].onCancelParams) { // alert a onCancel method
+					                    	self.objects[i].onComplete.apply(o, o.onCompleteParams);
+					                    } else {
+					                    	self.objects[i].onCancel();
+					                    }
+			                		}
+			                		self.objects.splice(i,1);
+			                	}
+			                }
+			        	}
+		            }
+		            // END OF CODE ADDED BY OLIVER MORAN
+		            	
 		            self.objects.push(o);
 		            if (!self.looping) { 
 		                self.looping = true;
@@ -2673,6 +2717,19 @@ Canvas.Drawing = function(canvas){
 		this.y3 = y3;
 		this.radius = radius;
 		
+		this.copy = function(){
+			var arc = new Canvas.Palette.Arc(this.x1, this.y1, this.x2, this.y2, this.x3, this.y3, this.radius);
+				
+			for (var prop in this) 
+				if (typeof this[prop] != "object")
+					arc[prop] = this[prop];
+			
+			if (this.mask) arc.mask = this.mask.copy();
+			if (this.hitArea) arc.mask = this.mask.copy();
+			
+			return arc;
+		};
+		
 		this.moveBy = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
 
@@ -2914,6 +2971,9 @@ Canvas.Drawing = function(canvas){
 		
 		this.imageEffectsLibrary = Canvas.defaultImageEffectsLibrary; // the default FX library can be over ridden
 	
+		this.isComplete = function(){
+			return (image.complete);
+		};
 		
 		/**
 		 * If an effects library is included on the web page, Canvas API can add effects to images using that library. Currently only the Pixastic library is supported.
@@ -3027,6 +3087,10 @@ Canvas.Drawing = function(canvas){
 	
 		this.audio = Canvas.Library.addAudio(src);
 		
+		this.isComplete = function(){
+			return (audio.complete == true);
+		};
+
 		this.play = function(){
 			this.audio.play();
 		};
@@ -3078,6 +3142,10 @@ Canvas.Drawing = function(canvas){
 			this.y = y;
 			this.video = Canvas.Library.addVideo(src);
 	
+			this.isComplete = function(){
+				return (video.complete == true);
+			};
+
 			this.play = function(){
 				this.video.play();
 			};
@@ -3165,7 +3233,8 @@ Canvas.Drawing = function(canvas){
 	 */
 	Canvas.Palette.Text = function(x, y, text){
 		if (isNaN(x) || isNaN(y) || typeof text != "string") return false; // catch errors
-	
+		if (!document.createElement("canvas").getContext("2d").fillText || !document.createElement("canvas").getContext("2d").strokeText) return false; // not supported on Camino
+
 		Canvas.Utils.inherit(this, new baseObject());
 	
 		this.x = x;
@@ -3272,10 +3341,9 @@ Canvas.Drawing = function(canvas){
 				context.lineTo((0-this.pivotx)*xdir+offsetx, height-this.pivoty+offsety);
 				context.closePath();
 			} else {
-				// stroke and fill text are not supported on Camino
-				if (context.fillText) context.fillText(this.text, -this.pivotx, -this.pivoty);
+				context.fillText(this.text, -this.pivotx, -this.pivoty);
 				if (this.fill != "transparent") context.shadowColor = "transparent"; // hide the shadow before applying the stroke
-				if (context.strokeText) context.strokeText(this.text, -this.pivotx, -this.pivoty);
+				context.strokeText(this.text, -this.pivotx, -this.pivoty);
 			}
 			
 			this.afterDrawObject(-(this.x+this.pivotx), -(this.y+this.pivoty), senders, context, trace);
@@ -3336,6 +3404,16 @@ Canvas.Drawing = function(canvas){
 		this.x = x;
 		this.y = y;
 		
+		this.copy = function(){
+			var group = new Canvas.Palette.Group(this.x, this.y);
+			for (var member in _members){
+				// copy all of the memebers
+				group.add(_members[member].object, member, _members[member].isCopy);
+			}
+			if (this.mask) group.setMask(this.mask.copy());
+			return group;
+		};
+		
 		this.moveBy = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
 			
@@ -3379,8 +3457,8 @@ Canvas.Drawing = function(canvas){
 	
 			if (!obj || !obj.draw) return false;
 			
-			if (copy) _members[name] = obj.copy();
-			else _members[name] = obj;
+			if (copy) _members[name] = {object:obj.copy(), isCopy:true};
+			else _members[name] = {object:obj, isCopy:false};
 			
 			return false;
 		};
@@ -3408,7 +3486,7 @@ Canvas.Drawing = function(canvas){
 		this.membersByLayer = function() {
 			var array = new Array();
 			for (var obj in _members) 
-				array.push(_members[obj]);
+				array.push(_members[obj].object);
 			
 			for(var i = 0; i < array.length; i++) {
 				for(var j = 0; j < (array.length-1); j++) {
@@ -3457,6 +3535,15 @@ Canvas.Drawing = function(canvas){
 		this.x = x;
 		this.y = y;
 		
+		this.copy = function(){
+			var mask = new Canvas.Palette.Mask(this.x, this.y);
+			for (var element in _elements){
+				// copy all of the memebers
+				mask.add(_elements[element].object, element, _elements[element].isCopy);
+			}
+			return mask;
+		};
+		
 		this.moveBy = function(x, y){
 			if (isNaN(x) || isNaN(y)) return false;
 			
@@ -3500,8 +3587,8 @@ Canvas.Drawing = function(canvas){
 			
 			if (!obj || !obj.draw) return false;
 	
-			if (copy) _elements[name] = obj.copy();
-			else _elements[name] = obj;
+			if (copy) _elements[name] = {object:obj.copy(), isCopy:true};
+			else _elements[name] = {object:obj, isCopy:false};
 			
 			return true;
 		};
@@ -3529,7 +3616,7 @@ Canvas.Drawing = function(canvas){
 		this.elementsByLayer = function() {
 			var array = new Array();
 			for (var obj in _elements) 
-				array.push(_elements[obj]);
+				array.push(_elements[obj].object);
 			
 			for(var i = 0; i < array.length; i++) {
 				for(var j = 0; j < (array.length-1); j++) {

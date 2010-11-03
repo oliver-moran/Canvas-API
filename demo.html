@@ -14,7 +14,7 @@
 
 <script language="javascript">
 
-Canvas.debug = true;
+// Canvas.debug = true;
 
 var clock = {
 	init : function(){
@@ -55,8 +55,17 @@ var clock = {
 		text.fill = "lightGrey";
 		clock.drawing.add(text);
 
+		var c1 = new Canvas.Palette.Circle(50,50,50);
+		
+		var mask = new $Mask(0,0);
+		var c = new $Rectangle(25,0, 50,0, 50,50, 25,50);
+		mask.add(c);
+		c1.setMask(mask);
+		clock.drawing.add(c1);
+
+		
 		// Start the animation (the default frame rate in 12 fps)
-		clock.drawing.onBeforeDraw = function(_this){
+		clock.drawing.onBeforeDraw = function(){
 			// Get the current time and rotate each hand accordingly
 			var time = new Date();
 			hour_hand.rotation = (360/12)*(time.getHours())+((360/12)/60)*time.getMinutes();
